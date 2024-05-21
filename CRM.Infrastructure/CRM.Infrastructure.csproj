@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PreserveCompilationContext>true</PreserveCompilationContext>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Email\EmailModels\ConfirmRegister.cshtml" />
+    <None Remove="Email\EmailModels\RecoveryPassword.cshtml" />
+    <None Remove="Email\EmailModels\UpdatePassword.cshtml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.1" />
+    <PackageReference Include="MailKit" Version="4.6.0" />
+    <PackageReference Include="RazorLight" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CRM.Application\CRM.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Email\EmailModels\ConfirmRegister.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Email\EmailModels\RecoveryPassword.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Email\EmailModels\UpdatePassword.cshtml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
