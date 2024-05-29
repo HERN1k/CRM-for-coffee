@@ -38,27 +38,6 @@ namespace CRM.Data.Stores
       }
     }
 
-    public async Task<int?> GetMaxUser()
-    {
-      try
-      {
-        int max = 0;
-        bool isNotFirst = await _context.Users
-          .AsNoTracking()
-          .AnyAsync();
-        if (isNotFirst)
-          max = await _context.Users
-            .AsNoTracking()
-            .MaxAsync((entity) => entity.UserId);
-        return max;
-      }
-      catch (Exception ex)
-      {
-        await _logger.WriteErrorLog(ex);
-        return null;
-      }
-    }
-
     public async Task<bool> SaveNewUser(User newUser)
     {
       try

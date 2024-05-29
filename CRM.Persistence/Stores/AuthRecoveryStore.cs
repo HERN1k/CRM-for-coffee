@@ -1,4 +1,5 @@
-﻿using CRM.Core.Models;
+﻿using CRM.Core.Entities;
+using CRM.Core.Models;
 using CRM.Data.Types;
 
 using LogLib.Types;
@@ -30,7 +31,7 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .Select((entity) => new
           {
-            entity.UserId,
+            entity.Id,
             entity.Email,
             entity.Post,
             entity.PhoneNumber,
@@ -41,7 +42,7 @@ namespace CRM.Data.Stores
           return null;
         var user = new MainUser
         {
-          Id = _user.UserId,
+          Id = _user.Id,
           Email = _user.Email,
           Post = _user.Post,
           PhoneNumber = _user.PhoneNumber,
@@ -56,16 +57,32 @@ namespace CRM.Data.Stores
       }
     }
 
-    public async Task<bool> SaveNewPassword(int id, string hash)
+    public async Task<bool> SaveNewPassword(Guid id, string hash)
     {
       try
       {
         var user = await _context.Users
-          .Where((entity) => entity.UserId == id)
+          .Where((entity) => entity.Id == id)
           .SingleOrDefaultAsync();
         if (user == null)
           return false;
         user.Password = hash;
+        await _context.SaveChangesAsync();
+        return true;
+      }
+      catch (Exception ex)
+      {
+        await _logger.WriteErrorLog(ex);
+        return false;
+      }
+    }
+
+    public async Task<bool> RemoveRefreshToken(Guid id)
+    {
+      try
+      {
+        var token = new RefreshToken { UserId = id };
+        _context.Entry(token).State = EntityState.Deleted;
         await _context.SaveChangesAsync();
         return true;
       }

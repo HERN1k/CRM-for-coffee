@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using System.Text;
 
+using CRM.Application.GraphQl.Queries;
 using CRM.Application.Security;
 using CRM.Application.Services;
 using CRM.Application.Types;
@@ -28,9 +29,21 @@ namespace CRM.API.Helper
   {
     private readonly WebApplicationBuilder _builder = builder;
 
-    public void ConfigureJsonFile()
+    public void ConfigureCORS()
     {
-      _builder.Configuration.AddJsonFile("appsettings.json");
+      _builder.Services.AddCors(options =>
+      {
+        options.AddPolicy(name: "mainCors", policy =>
+        {
+          policy.WithOrigins(
+              "https://dreamworkout.pp.ua",
+              "http://dreamworkout.pp.ua"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        });
+      });
     }
 
     public void ConfigureBase()
@@ -106,7 +119,6 @@ namespace CRM.API.Helper
             }
           };
         });
-
     }
 
     public void ConfigureAuthorization()
@@ -138,7 +150,29 @@ namespace CRM.API.Helper
       _builder.Services.AddDbContext<AppDBContext>((options) =>
       {
         options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings"));
+        //.EnableSensitiveDataLogging()
+        //.UseLoggerFactory(LoggerFactory.Create(builder => { builder.AddConsole(); }));
+      }, ServiceLifetime.Scoped);
+    }
+
+    public void ConfigureSignalR()
+    {
+      _builder.Services.AddSignalR((options) =>
+      {
+        options.EnableDetailedErrors = true;
+        options.ClientTimeoutInterval = TimeSpan.FromMinutes(60);
       });
+    }
+
+    public void ConfigureGraphQL()
+    {
+      _builder.Services
+        .AddGraphQLServer()
+        .AddAuthorization()
+        .AddProjections()
+        .AddFiltering()
+        .AddSorting()
+        .AddQueryType<ChackoutQueries>();
     }
 
     public void ConfigureDi()

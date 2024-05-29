@@ -114,25 +114,12 @@ namespace CRM.Application.Services
       return true;
     }
 
-    public async Task<bool> SetNewId()
-    {
-      if (_user == null)
-        return false;
-      var max = await _registerStore.GetMaxUser();
-      if (max == null)
-        return false;
-      max++;
-      _user.Id = (int)max;
-      return true;
-    }
-
     public async Task<bool> SaveNewUser()
     {
       if (_user == null)
         return false;
       var user = new User
       {
-        UserId = _user.Id,
         FirstName = _user.FirstName,
         LastName = _user.LastName,
         FatherName = _user.FatherName,

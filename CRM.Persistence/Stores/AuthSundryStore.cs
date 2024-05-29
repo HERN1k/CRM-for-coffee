@@ -30,7 +30,7 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .Select((entity) => new
           {
-            entity.UserId,
+            entity.Id,
             entity.FirstName,
             entity.Email,
             entity.Post,
@@ -42,7 +42,7 @@ namespace CRM.Data.Stores
           return null;
         var user = new User
         {
-          UserId = userData.UserId,
+          Id = userData.Id,
           FirstName = userData.FirstName,
           Email = userData.Email,
           Post = userData.Post,
@@ -58,7 +58,7 @@ namespace CRM.Data.Stores
       }
     }
 
-    public async Task<string> FindTokenById(int id)
+    public async Task<string> FindTokenById(Guid id)
     {
       try
       {
@@ -78,7 +78,7 @@ namespace CRM.Data.Stores
       }
     }
 
-    public async Task<bool> RemoveRefreshToken(int id)
+    public async Task<bool> RemoveRefreshToken(Guid id)
     {
       try
       {

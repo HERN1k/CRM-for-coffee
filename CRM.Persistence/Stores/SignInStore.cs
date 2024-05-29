@@ -48,7 +48,7 @@ namespace CRM.Data.Stores
         if (user == null)
           return false;
 
-        bool checkToken = await СheckToken(user.UserId);
+        bool checkToken = await СheckToken(user.Id);
 
         var entity = new RefreshToken
         {
@@ -66,7 +66,7 @@ namespace CRM.Data.Stores
       }
     }
 
-    private async Task<bool> СheckToken(int id)
+    private async Task<bool> СheckToken(Guid id)
     {
       try
       {

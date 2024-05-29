@@ -8,7 +8,6 @@ namespace CRM.Application.Types
     ValidationResult ValidationDataRegister();
     Task<bool> UserIsRegister();
     bool GetHash();
-    Task<bool> SetNewId();
     Task<bool> SaveNewUser();
     Task<bool> RemoveUser();
     Task<bool> SendEmailConfirmRegister();

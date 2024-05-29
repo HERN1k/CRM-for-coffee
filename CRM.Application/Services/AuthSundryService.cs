@@ -50,7 +50,7 @@ namespace CRM.Application.Services
 
       _user = new MainUser
       {
-        Id = user.UserId,
+        Id = user.Id,
         FirstName = user.FirstName,
         Email = user.Email,
         Post = user.Post
@@ -88,6 +88,7 @@ namespace CRM.Application.Services
 
       var claims = new List<Claim>
       {
+        new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
         new Claim(ClaimTypes.Email, _user.Email),
         new Claim(ClaimTypes.Role, _user.Post),
       };
@@ -119,7 +120,7 @@ namespace CRM.Application.Services
         return false;
       _user = new MainUser
       {
-        Id = user.UserId,
+        Id = user.Id,
         Password = user.Password,
         RegistrationDate = user.RegistrationDate,
         Email = user.Email,

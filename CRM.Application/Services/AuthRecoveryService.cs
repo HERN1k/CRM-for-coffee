@@ -102,5 +102,13 @@ namespace CRM.Application.Services
       bool result = await _authRecoveryStore.SaveNewPassword(_user.Id, hash);
       return result;
     }
+
+    public async Task<bool> RemoveRefreshToken()
+    {
+      if (_user == null)
+        return false;
+      var result = await _authRecoveryStore.RemoveRefreshToken(_user.Id);
+      return result;
+    }
   }
 }

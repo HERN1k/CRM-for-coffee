@@ -14,6 +14,6 @@ namespace CRM.Application.Types
     string GetJwtToken(TypesToken typesTokens);
     Task<bool> SaveToken(string token);
     SignInResponse? SetResponse(string refreshToken);
-    CookieOptions SetCookieOptions();
+    CookieOptions SetCookieOptions(TypesToken typesTokens);
   }
 }

@@ -43,7 +43,7 @@ namespace CRM.Application.Services
         return false;
       _user = new MainUser
       {
-        Id = user.UserId,
+        Id = user.Id,
         FirstName = user.FirstName,
         LastName = user.LastName,
         FatherName = user.FatherName,
@@ -93,6 +93,7 @@ namespace CRM.Application.Services
       int tokenLifetime = 30;
       var claims = new List<Claim>
       {
+        new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
         new Claim(ClaimTypes.Email, _user.Email),
         new Claim(ClaimTypes.Role, _user.Post),
       };
@@ -129,12 +130,29 @@ namespace CRM.Application.Services
       };
     }
 
-    public CookieOptions SetCookieOptions()
+    public CookieOptions SetCookieOptions(TypesToken typesTokens)
     {
-      return new CookieOptions
+      if ((int)typesTokens == 1)
       {
-        MaxAge = TimeSpan.FromMinutes(_jwtOptions.AccessTokenLifetime),
-      };
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtOptions.AccessTokenLifetime),
+        };
+      }
+      else if ((int)typesTokens == 2)
+      {
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtOptions.RefreshTokenLifetime),
+        };
+      }
+      else
+      {
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtOptions.AccessTokenLifetime),
+        };
+      }
     }
   }
 }

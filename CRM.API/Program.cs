@@ -1,5 +1,6 @@
 using CRM.API.Helper;
 using CRM.API.Middlewares;
+using CRM.Application.Hubs;
 
 using Microsoft.AspNetCore.CookiePolicy;
 
@@ -11,12 +12,15 @@ namespace CRM.API
     {
       var builder = WebApplication.CreateBuilder(args);
       var helper = new AppBuilder(builder);
+      helper.ConfigureCORS();
       helper.ConfigureBase();
       helper.ConfigureSwagger();
       helper.ConfigureOptions();
       helper.ConfigureAuthentication();
       helper.ConfigureAuthorization();
       helper.ConfigureDb();
+      helper.ConfigureSignalR();
+      helper.ConfigureGraphQL();
       helper.ConfigureDi();
 
       var app = builder.Build();
@@ -25,6 +29,9 @@ namespace CRM.API
         app.UseSwagger();
         app.UseSwaggerUI();
       }
+
+      app.UseCors("mainCors");
+
       app.UseCookiePolicy(new CookiePolicyOptions
       {
         HttpOnly = HttpOnlyPolicy.Always,
@@ -36,7 +43,11 @@ namespace CRM.API
       app.UseAuthorization();
       app.MapControllers();
 
+      app.MapHub<ChackoutHub>("/Api/Chackout");
+
       app.UseMiddleware<LogFactoryMiddleware>();
+
+      app.MapGraphQL("/Api/GraphQl");
 
       app.Run();
     }

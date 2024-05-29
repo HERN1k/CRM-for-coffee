@@ -9,5 +9,6 @@ namespace CRM.Application.Types
     string GetNewPassword(int length);
     Task<bool> SendRecoveryPassEmail(string password);
     Task<bool> SaveNewPassword(string password);
+    Task<bool> RemoveRefreshToken();
   }
 }
