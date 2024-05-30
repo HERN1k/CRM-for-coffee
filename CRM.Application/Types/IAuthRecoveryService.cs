@@ -1,8 +1,8 @@
-﻿using CRM.Core.Contracts;
+﻿using CRM.Core.Contracts.RestDto;
 
 namespace CRM.Application.Types
 {
-  public interface IAuthRecoveryService
+    public interface IAuthRecoveryService
   {
     ValidationResult ValidationDataRcoveryPass(RecoveryPasswordRequest request);
     Task<bool> СomparisonRecoveryPassData();

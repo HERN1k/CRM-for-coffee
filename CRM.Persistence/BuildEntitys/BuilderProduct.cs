@@ -8,30 +8,29 @@ namespace CRM.Data.BuildEntitys
   {
     public static void Build(ModelBuilder modelBuilder)
     {
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
         .HasMany(e => e.AddOns)
         .WithOne(e => e.Product)
         .HasForeignKey(e => e.ProductId);
-      //modelBuilder.Entity<Product>()
-      //  .HasIndex(e => e.Name)
-      //  .IsUnique();
-      //modelBuilder.Entity<Product>()
-      //  .HasKey(e => e.Name);
 
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
+        .HasIndex(e => e.Name)
+        .IsUnique();
+
+      modelBuilder.Entity<EntityProduct>()
         .Property(e => e.Name)
         .IsRequired();
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
         .Property(e => e.Image)
         .IsRequired();
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
         .Property(e => e.Price)
         .HasColumnType("numeric(10, 2)")
         .IsRequired();
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
         .Property(e => e.Amount)
         .IsRequired();
-      modelBuilder.Entity<Product>()
+      modelBuilder.Entity<EntityProduct>()
         .Property(e => e.ProductCategoryId)
         .IsRequired();
     }

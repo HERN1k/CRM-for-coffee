@@ -4,7 +4,7 @@ using System.Text;
 using CRM.Application.RegEx;
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
-using CRM.Core.Contracts;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Models;
 using CRM.Data.Types;
 
@@ -13,14 +13,14 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services
 {
-  public class AuthSundryService : IAuthSundryService
+    public class AuthSundryService : IAuthSundryService
   {
     private readonly JwtOptions _jwtOptions;
     private readonly ITokenService _tokenService;
     private readonly IHesherService _hesherService;
     private readonly IAuthSundryStore _authSundryStore;
     private readonly IEmailService _emailService;
-    private MainUser? _user { get; set; }
+    private User? _user { get; set; }
 
     public AuthSundryService(
         IOptions<JwtOptions> jwtOptions,
@@ -48,7 +48,7 @@ namespace CRM.Application.Services
       if (user == null)
         return false;
 
-      _user = new MainUser
+      _user = new User
       {
         Id = user.Id,
         FirstName = user.FirstName,
@@ -118,7 +118,7 @@ namespace CRM.Application.Services
       var user = await _authSundryStore.FindUserByEmail(request.email);
       if (user == null)
         return false;
-      _user = new MainUser
+      _user = new User
       {
         Id = user.Id,
         Password = user.Password,

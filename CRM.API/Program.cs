@@ -43,7 +43,7 @@ namespace CRM.API
       app.UseAuthorization();
       app.MapControllers();
 
-      app.MapHub<ChackoutHub>("/Api/Chackout");
+      app.MapHub<ChackoutHub>("/Api/ChackoutHub");
 
       app.UseMiddleware<LogFactoryMiddleware>();
 

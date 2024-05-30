@@ -1,9 +1,8 @@
 ﻿using System.Text;
-
-using CRM.API.Contarcts;
 using CRM.Application.RegEx;
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Models;
 using CRM.Data.Types;
@@ -12,13 +11,13 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services
 {
-  public class RegisterService : IRegisterService
+    public class RegisterService : IRegisterService
   {
     private readonly HttpOptions _httpOptions;
     private readonly IRegisterStore _registerStore;
     private readonly IHesherService _hashPassword;
     private readonly IEmailService _emailService;
-    private MainUser? _user { get; set; }
+    private User? _user { get; set; }
 
     public RegisterService(
       IOptions<HttpOptions> httpOptions,
@@ -35,7 +34,7 @@ namespace CRM.Application.Services
 
     public bool AddToModel(RegisterRequest request)
     {
-      _user = new MainUser
+      _user = new User
       {
         FirstName = request.firstName,
         LastName = request.lastName,
@@ -118,7 +117,7 @@ namespace CRM.Application.Services
     {
       if (_user == null)
         return false;
-      var user = new User
+      var user = new EntityUser
       {
         FirstName = _user.FirstName,
         LastName = _user.LastName,
@@ -163,7 +162,7 @@ namespace CRM.Application.Services
         return false;
       byte[] bytes = Convert.FromBase64String(input);
       string result = Encoding.UTF8.GetString(bytes);
-      _user = new MainUser { Email = result };
+      _user = new User { Email = result };
       return true;
     }
 

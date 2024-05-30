@@ -1,11 +1,10 @@
 ﻿using System.Security.Claims;
 using System.Text;
-
-using CRM.API.Contarcts;
 using CRM.Application.RegEx;
 using CRM.Application.Security;
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Models;
 using CRM.Core.Responses;
 using CRM.Data.Types;
@@ -15,13 +14,13 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services
 {
-  public class SignInService : ISignInService
+    public class SignInService : ISignInService
   {
     private readonly JwtOptions _jwtOptions;
     private readonly ISignInStore _signInStore;
     private readonly IHesherService _hashPassword;
     private readonly ITokenService _tokenServices;
-    private MainUser? _user { get; set; }
+    private User? _user { get; set; }
 
     public SignInService(
         IOptions<JwtOptions> jwtOptions,
@@ -41,7 +40,7 @@ namespace CRM.Application.Services
       var user = await _signInStore.FindUserByEmail(email);
       if (user == null)
         return false;
-      _user = new MainUser
+      _user = new User
       {
         Id = user.Id,
         FirstName = user.FirstName,

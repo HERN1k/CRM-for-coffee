@@ -1,12 +1,12 @@
-﻿using CRM.API.Contarcts;
-using CRM.Application.Security;
+﻿using CRM.Application.Security;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Responses;
 
 using Microsoft.AspNetCore.Http;
 
 namespace CRM.Application.Types
 {
-  public interface ISignInService
+    public interface ISignInService
   {
     Task<bool> SetData(string email);
     ValidationResult ValidationDataSignIn(SignInRequest request);

@@ -1,7 +1,8 @@
 ﻿using System.Security.Claims;
 using System.Text;
 
-using CRM.Application.GraphQl.Queries;
+using CRM.API.GraphQl.Mutations;
+using CRM.API.GraphQl.Queries;
 using CRM.Application.Security;
 using CRM.Application.Services;
 using CRM.Application.Types;
@@ -169,10 +170,12 @@ namespace CRM.API.Helper
       _builder.Services
         .AddGraphQLServer()
         .AddAuthorization()
+        .AddErrorFilter<GraphQlErrorFilter>()
         .AddProjections()
         .AddFiltering()
         .AddSorting()
-        .AddQueryType<ChackoutQueries>();
+        .AddQueryType<ProductQueries>()
+        .AddMutationType<ProductMutations>();
     }
 
     public void ConfigureDi()
@@ -186,12 +189,14 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<ISignOutService, SignOutService>();
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
+      _builder.Services.AddScoped<IProductService, ProductService>();
 
       _builder.Services.AddScoped<IRegisterStore, RegisterStore>();
       _builder.Services.AddScoped<ISignInStore, SignInStore>();
       _builder.Services.AddScoped<ISignOutStore, SignOutStore>();
       _builder.Services.AddScoped<IAuthSundryStore, AuthSundryStore>();
       _builder.Services.AddScoped<IAuthRecoveryStore, AuthRecoveryStore>();
+      _builder.Services.AddScoped<IProductStore, ProductStore>();
 
       _builder.Services.AddSingleton<ILoggerLib, LoggerLib>();
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>

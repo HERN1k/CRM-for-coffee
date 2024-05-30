@@ -1,11 +1,9 @@
-﻿using CRM.API.Contarcts;
-using CRM.Core.Contracts;
-
+﻿using CRM.Core.Contracts.RestDto;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.API.Types
 {
-  public interface IAuthController
+    public interface IAuthController
   {
     Task<IActionResult> Register(RegisterRequest request);
     Task<IActionResult> ConfirmRegister(string code);

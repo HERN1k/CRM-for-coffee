@@ -4,7 +4,7 @@ namespace CRM.Data.Types
 {
   public interface ISignInStore
   {
-    Task<User?> FindUserByEmail(string email);
+    Task<EntityUser?> FindUserByEmail(string email);
     Task<bool> SaveToken(string email, string token);
   }
 }

@@ -8,45 +8,50 @@ namespace CRM.Data.BuildEntitys
   {
     public static void Build(ModelBuilder modelBuilder)
     {
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .HasOne(e => e.RefreshToken)
         .WithOne(e => e.User)
-        .HasForeignKey<RefreshToken>(e => e.UserId);
+        .HasForeignKey<EntityRefreshToken>(e => e.UserId);
 
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
+        .HasIndex(e => e.Email)
+        .IsUnique();
+
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Id)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Password)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.FirstName)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.LastName)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.FatherName)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Age)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Gender)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.PhoneNumber)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Email)
+
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.Post)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.IsConfirmed)
         .IsRequired();
-      modelBuilder.Entity<User>()
+      modelBuilder.Entity<EntityUser>()
         .Property(e => e.RegistrationDate)
         .IsRequired();
     }

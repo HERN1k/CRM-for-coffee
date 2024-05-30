@@ -1,8 +1,8 @@
-﻿using CRM.API.Contarcts;
+﻿using CRM.Core.Contracts.RestDto;
 
 namespace CRM.Application.Types
 {
-  public interface IRegisterService
+    public interface IRegisterService
   {
     bool AddToModel(RegisterRequest request);
     ValidationResult ValidationDataRegister();

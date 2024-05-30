@@ -22,7 +22,7 @@ namespace CRM.Data.Stores
       _logger = logger;
     }
 
-    public async Task<MainUser?> FindUserByEmail(string email)
+    public async Task<User?> FindUserByEmail(string email)
     {
       try
       {
@@ -40,9 +40,9 @@ namespace CRM.Data.Stores
           .SingleOrDefaultAsync();
         if (_user == null)
           return null;
-        var user = new MainUser
+        var user = new User
         {
-          Id = _user.Id,
+          Id = (Guid)_user.Id!,
           Email = _user.Email,
           Post = _user.Post,
           PhoneNumber = _user.PhoneNumber,
@@ -81,7 +81,7 @@ namespace CRM.Data.Stores
     {
       try
       {
-        var token = new RefreshToken { UserId = id };
+        var token = new EntityRefreshToken { UserId = id };
         _context.Entry(token).State = EntityState.Deleted;
         await _context.SaveChangesAsync();
         return true;

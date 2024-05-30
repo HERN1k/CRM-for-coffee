@@ -1,10 +1,9 @@
-﻿using CRM.Core.Contracts;
-
+﻿using CRM.Core.Contracts.RestDto;
 using Microsoft.AspNetCore.Http;
 
 namespace CRM.Application.Types
 {
-  public interface IAuthSundryService
+    public interface IAuthSundryService
   {
     bool ValidationEmail(string email);
     Task<bool> CheckImmutableToken(string email, string refreshToken);

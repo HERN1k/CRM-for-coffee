@@ -38,7 +38,7 @@ namespace CRM.Data.Stores
       }
     }
 
-    public async Task<bool> SaveNewUser(User newUser)
+    public async Task<bool> SaveNewUser(EntityUser newUser)
     {
       try
       {

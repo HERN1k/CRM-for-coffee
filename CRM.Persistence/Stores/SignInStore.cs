@@ -21,7 +21,7 @@ namespace CRM.Data.Stores
       _logger = logger;
     }
 
-    public async Task<User?> FindUserByEmail(string email)
+    public async Task<EntityUser?> FindUserByEmail(string email)
     {
       try
       {
@@ -50,7 +50,7 @@ namespace CRM.Data.Stores
 
         bool checkToken = await СheckToken(user.Id);
 
-        var entity = new RefreshToken
+        var entity = new EntityRefreshToken
         {
           RefreshTokenString = token
         };

@@ -8,13 +8,13 @@ namespace CRM.Data.BuildEntitys
   {
     public static void Build(ModelBuilder modelBuilder)
     {
-      modelBuilder.Entity<RefreshToken>()
+      modelBuilder.Entity<EntityRefreshToken>()
         .HasKey(e => e.UserId);
 
-      modelBuilder.Entity<RefreshToken>()
+      modelBuilder.Entity<EntityRefreshToken>()
         .Property(e => e.UserId)
         .IsRequired();
-      modelBuilder.Entity<RefreshToken>()
+      modelBuilder.Entity<EntityRefreshToken>()
         .Property(e => e.RefreshTokenString)
         .IsRequired();
     }

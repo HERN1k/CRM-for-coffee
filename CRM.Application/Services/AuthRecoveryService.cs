@@ -2,18 +2,18 @@
 
 using CRM.Application.RegEx;
 using CRM.Application.Types;
-using CRM.Core.Contracts;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Models;
 using CRM.Data.Types;
 
 namespace CRM.Application.Services
 {
-  public class AuthRecoveryService : IAuthRecoveryService
+    public class AuthRecoveryService : IAuthRecoveryService
   {
     private readonly IAuthRecoveryStore _authRecoveryStore;
     private readonly IEmailService _emailService;
     private readonly IHesherService _hashPassword;
-    private MainUser? _user { get; set; }
+    private User? _user { get; set; }
 
     public AuthRecoveryService(
         IAuthRecoveryStore authRecoveryStore,
@@ -40,7 +40,7 @@ namespace CRM.Application.Services
       if (!post)
         return new ValidationResult { IsSuccess = false, Field = "Post" };
 
-      _user = new MainUser
+      _user = new User
       {
         Email = request.email,
         PhoneNumber = request.phoneNumber,

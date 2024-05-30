@@ -1,10 +1,9 @@
 ﻿using System.Security.Claims;
 
-using CRM.API.Contarcts;
 using CRM.API.Types;
 using CRM.Application.Security;
 using CRM.Application.Types;
-using CRM.Core.Contracts;
+using CRM.Core.Contracts.RestDto;
 using CRM.Core.Responses;
 
 using Microsoft.AspNetCore.Authorization;
@@ -40,7 +39,7 @@ namespace CRM.API.Controllers
     }
 
     [HttpGet("Test")]
-    public async Task<IActionResult> Test()
+    public IActionResult Test()
     {
       if (HttpContext.User.Identity == null)
         return BadRequest();

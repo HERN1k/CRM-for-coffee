@@ -1,6 +1,6 @@
 ﻿namespace CRM.Core.Entities
 {
-  public class User
+  public class EntityUser
   {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Password { get; set; } = null!;
@@ -14,6 +14,6 @@
     public string Post { get; set; } = null!;
     public bool IsConfirmed { get; set; }
     public string RegistrationDate { get; set; } = null!;
-    public RefreshToken RefreshToken { get; set; } = null!;
+    public EntityRefreshToken RefreshToken { get; set; } = null!;
   }
 }

@@ -31,7 +31,7 @@ namespace CRM.Data.Stores
           .SingleOrDefaultAsync();
         if (user == null)
           return false;
-        var token = new RefreshToken { UserId = user.Id };
+        var token = new EntityRefreshToken { UserId = user.Id };
         _context.Entry(token).State = EntityState.Deleted;
 
         await _context.SaveChangesAsync();

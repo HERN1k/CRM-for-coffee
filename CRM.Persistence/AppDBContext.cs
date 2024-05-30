@@ -7,11 +7,11 @@ namespace CRM.Data
 {
   public class AppDBContext : DbContext
   {
-    public DbSet<User> Users { get; set; } = null!;
-    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
-    public DbSet<ProductCategory> ProductCategorys { get; set; } = null!;
-    public DbSet<Product> Products { get; set; } = null!;
-    public DbSet<AddOn> AddOns { get; set; } = null!;
+    public DbSet<EntityUser> Users { get; set; } = null!;
+    public DbSet<EntityRefreshToken> RefreshTokens { get; set; } = null!;
+    public DbSet<EntityProductCategory> ProductCategorys { get; set; } = null!;
+    public DbSet<EntityProduct> Products { get; set; } = null!;
+    public DbSet<EntityAddOn> AddOns { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
