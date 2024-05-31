@@ -2,6 +2,6 @@
 {
   public interface ISignOutStore
   {
-    Task<bool> RemoveToken(string email, string refreshToken);
+    Task RemoveToken(string email, string refreshToken);
   }
 }

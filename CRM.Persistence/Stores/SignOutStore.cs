@@ -1,27 +1,28 @@
 ﻿using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Data.Types;
 
-using LogLib.Types;
-
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Stores
 {
   public class SignOutStore : ISignOutStore
   {
     private readonly AppDBContext _context;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<SignOutStore> _logger;
 
     public SignOutStore(
         AppDBContext context,
-        ILoggerLib logger
+        ILogger<SignOutStore> logger
       )
     {
       _context = context;
       _logger = logger;
     }
 
-    public async Task<bool> RemoveToken(string email, string refreshToken)
+    public async Task RemoveToken(string email, string refreshToken)
     {
       try
       {
@@ -30,17 +31,16 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
         if (user == null)
-          return false;
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
         var token = new EntityRefreshToken { UserId = user.Id };
         _context.Entry(token).State = EntityState.Deleted;
 
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
   }

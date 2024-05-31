@@ -1,28 +1,29 @@
 ﻿using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Models;
 using CRM.Data.Types;
 
-using LogLib.Types;
-
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Stores
 {
   public class AuthRecoveryStore : IAuthRecoveryStore
   {
     private readonly AppDBContext _context;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<AuthRecoveryStore> _logger;
 
     public AuthRecoveryStore(
         AppDBContext context,
-        ILoggerLib logger
+        ILogger<AuthRecoveryStore> logger
       )
     {
       _context = context;
       _logger = logger;
     }
 
-    public async Task<User?> FindUserByEmail(string email)
+    public async Task<User> FindUserByEmail(string email)
     {
       try
       {
@@ -39,10 +40,10 @@ namespace CRM.Data.Stores
           })
           .SingleOrDefaultAsync();
         if (_user == null)
-          return null;
+          throw new CustomException(ErrorTypes.BadRequest, "Some data doesn't match");
         var user = new User
         {
-          Id = (Guid)_user.Id!,
+          Id = _user.Id,
           Email = _user.Email,
           Post = _user.Post,
           PhoneNumber = _user.PhoneNumber,
@@ -52,12 +53,12 @@ namespace CRM.Data.Stores
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return null;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> SaveNewPassword(Guid id, string hash)
+    public async Task SaveNewPassword(Guid id, string hash)
     {
       try
       {
@@ -65,31 +66,29 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Id == id)
           .SingleOrDefaultAsync();
         if (user == null)
-          return false;
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
         user.Password = hash;
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> RemoveRefreshToken(Guid id)
+    public async Task RemoveRefreshToken(Guid id)
     {
       try
       {
         var token = new EntityRefreshToken { UserId = id };
         _context.Entry(token).State = EntityState.Deleted;
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
   }

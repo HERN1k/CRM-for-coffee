@@ -1,9 +1,10 @@
 ﻿using System.Security.Claims;
 
 using CRM.API.Types;
-using CRM.Application.Security;
 using CRM.Application.Types;
 using CRM.Core.Contracts.RestDto;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Responses;
 
 using Microsoft.AspNetCore.Authorization;
@@ -42,7 +43,7 @@ namespace CRM.API.Controllers
     public IActionResult Test()
     {
       if (HttpContext.User.Identity == null)
-        return BadRequest();
+        throw new CustomException(ErrorTypes.BadRequest, "Bad request");
       var isAuthenticated = HttpContext.User.Identity.IsAuthenticated;
       var id = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
       var role = HttpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role);
@@ -59,6 +60,7 @@ namespace CRM.API.Controllers
       return Ok();
     }
 
+    #region [HttpPost("Register")]
     [SwaggerOperation(
       Summary = "Registers a new user.",
       OperationId = "Register",
@@ -72,38 +74,25 @@ namespace CRM.API.Controllers
     public async Task<IActionResult> Register(RegisterRequest request)
     {
       //if (request.post == "Admin")
-      //  return BadRequest(new ErrorsResponse(500, "You cannot register a user with administrator rights."));
+      //  throw new CustomException(ErrorTypes.ValidationError, "You cannot register a user with administrator rights");
 
-      bool setUser = _registerService.AddToModel(request);
-      if (!setUser)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      _registerService.AddToModel(request);
 
-      var isValidData = _registerService.ValidationDataRegister();
-      if (!isValidData.IsSuccess)
-        return Ok(new ErrorsResponse(400, $"{isValidData.Field} is incorrect or null."));
+      _registerService.ValidationDataRegister();
 
-      bool userIsRegister = await _registerService.UserIsRegister();
-      if (userIsRegister)
-        return Ok(new ErrorsResponse(400, "The user has already been registered."));
+      await _registerService.UserIsRegister();
 
-      bool hashPassword = _registerService.GetHash();
-      if (!hashPassword)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      _registerService.GetHash();
 
-      var saveUser = await _registerService.SaveNewUser();
-      if (!saveUser)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _registerService.SaveNewUser();
 
-      //bool sendEmail = await _registerService.SendEmailConfirmRegister();
-      //if (!sendEmail)
-      //{
-      //  await _registerService.RemoveUser();
-      //  return BadRequest(new ErrorsResponse(500, "Server error."));
-      //}
+      //await _registerService.SendEmailConfirmRegister();
 
       return Ok();
     }
+    #endregion
 
+    #region [HttpGet("ConfirmRegister/{code}")]
     [SwaggerOperation(
       Summary = "Confirmation of registration.",
       OperationId = "ConfirmRegister",
@@ -115,21 +104,17 @@ namespace CRM.API.Controllers
     [HttpGet("ConfirmRegister/{code}")]
     public async Task<IActionResult> ConfirmRegister(string code)
     {
-      bool converted = _registerService.FromBase64ToString(code);
-      if (!converted)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      _registerService.FromBase64ToString(code);
 
-      bool isValidData = _registerService.ValidationEmail();
-      if (!isValidData)
-        return Ok(new ErrorsResponse(400, "Code is invalid."));
+      _registerService.ValidationEmail();
 
-      bool result = await _registerService.ConfirmRegister();
-      if (!result)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _registerService.ConfirmRegister();
 
       return Ok();
     }
+    #endregion
 
+    #region [HttpPost("SignIn")]
     [SwaggerOperation(
       Summary = "User authorization.",
       OperationId = "SignIn",
@@ -141,35 +126,27 @@ namespace CRM.API.Controllers
     [HttpPost("SignIn")]
     public async Task<IActionResult> SignIn(SignInRequest request)
     {
-      var isValidData = _signInService.ValidationDataSignIn(request);
-      if (!isValidData.IsSuccess)
-        return Ok(new ErrorsResponse(400, $"{isValidData.Field} is incorrect or null."));
+      _signInService.ValidationDataSignIn(request);
 
-      bool setData = await _signInService.SetData(request.email);
-      if (!setData)
-        return Ok(new ErrorsResponse(400, "The user is not registered or has not confirmed the email."));
+      await _signInService.SetData(request.email);
 
-      bool verifiPassword = _signInService.VerificationHash(request.password);
-      if (!verifiPassword)
-        return Ok(new ErrorsResponse(400, "Incorrect password."));
+      _signInService.VerificationHash(request.password);
 
-      string accessToken = _signInService.GetJwtToken(TypesToken.Access);
-      string refreshToken = _signInService.GetJwtToken(TypesToken.Refresh);
+      string accessToken = _signInService.GetJwtToken(TokenTypes.Access);
+      string refreshToken = _signInService.GetJwtToken(TokenTypes.Refresh);
 
-      bool saveToken = await _signInService.SaveToken(refreshToken);
-      if (!saveToken)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _signInService.SaveToken(refreshToken);
 
       var response = _signInService.SetResponse(refreshToken);
-      if (response == null)
-        return Ok(new ErrorsResponse(500, "Server error."));
 
-      HttpContext.Response.Cookies.Append("accessToken", accessToken, _signInService.SetCookieOptions(TypesToken.Access));
-      HttpContext.Response.Cookies.Append("refreshToken", refreshToken, _signInService.SetCookieOptions(TypesToken.Refresh));
+      HttpContext.Response.Cookies.Append("accessToken", accessToken, _signInService.SetCookieOptions(TokenTypes.Access));
+      HttpContext.Response.Cookies.Append("refreshToken", refreshToken, _signInService.SetCookieOptions(TokenTypes.Refresh));
 
       return Ok(response);
     }
+    #endregion
 
+    #region [HttpPost("SignOut")]
     [SwaggerOperation(
       Summary = "Logs the user out.",
       OperationId = "Logout",
@@ -184,22 +161,20 @@ namespace CRM.API.Controllers
     {
       string? token = HttpContext.Request.Cookies["accessToken"];
       if (string.IsNullOrEmpty(token))
-        return Ok(new ErrorsResponse(400, "Token not found."));
+        throw new CustomException(ErrorTypes.BadRequest, "Token not found");
 
       string email = _signOutService.TokenDecryption(token);
-      if (string.IsNullOrEmpty(email))
-        return Ok(new ErrorsResponse(400, "Token not found."));
 
-      bool remove = await _signOutService.RemoveToken(email, token);
-      if (!remove)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _signOutService.RemoveToken(email, token);
 
       HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
       HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
 
       return Ok();
     }
+    #endregion
 
+    #region [HttpPost("ChangeToken")]
     [SwaggerOperation(
       Summary = "Update access token.",
       OperationId = "ChangeToken",
@@ -210,52 +185,38 @@ namespace CRM.API.Controllers
     [HttpPost("ChangeToken")]
     public async Task<IActionResult> ChangeToken(ChangeTokenRequest request)
     {
-      string? refreshToken = HttpContext.Request.Cookies["refreshToken"];
-      if (string.IsNullOrEmpty(refreshToken))
+      try
       {
-        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-        return Unauthorized();
-      }
+        string? refreshToken = HttpContext.Request.Cookies["refreshToken"];
+        if (string.IsNullOrEmpty(refreshToken))
+          throw new Exception("Exception");
 
-      bool isValidData = _authSundryService.ValidationEmail(request.email);
-      if (!isValidData)
+        _authSundryService.ValidationEmail(request.email);
+
+        await _authSundryService.CheckImmutableToken(request.email, refreshToken);
+
+        await _authSundryService.ValidateToken(refreshToken);
+
+        string accessToken = _authSundryService.GetJwtAccessToken();
+
+        HttpContext.Response.Cookies.Append("accessToken", accessToken, _authSundryService.SetCookieOptions());
+
+        return Ok();
+      }
+      catch (Exception ex)
       {
-        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-        return Unauthorized();
+        if (ex.Message == "Exception")
+        {
+          HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
+          HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
+          throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+        }
+        throw;
       }
-
-      bool isImmutableToken = await _authSundryService.CheckImmutableToken(request.email, refreshToken);
-      if (!isImmutableToken)
-      {
-        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-        return Unauthorized();
-      }
-
-      bool tokenIsValid = await _authSundryService.ValidateToken(refreshToken);
-      if (!tokenIsValid)
-      {
-        await _authSundryService.RemoveRefreshToken();
-        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-        return Unauthorized();
-      }
-
-      string accessToken = _authSundryService.GetJwtAccessToken();
-      if (string.IsNullOrEmpty(accessToken))
-      {
-        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-        return Unauthorized();
-      }
-
-      HttpContext.Response.Cookies.Append("accessToken", accessToken, _authSundryService.SetCookieOptions());
-
-      return Ok();
     }
+    #endregion
 
+    #region [HttpPost("UpdatePassword")]
     [SwaggerOperation(
       Summary = "Update user password.",
       OperationId = "UpdatePassword",
@@ -268,43 +229,31 @@ namespace CRM.API.Controllers
     [Authorize]
     public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest request)
     {
-      var isValidData = _authSundryService.ValidateDataUpdatePassword(request);
-      if (!isValidData.IsSuccess)
-        return Ok(new ErrorsResponse(400, $"{isValidData.Field} is incorrect or null."));
+      _authSundryService.ValidateDataUpdatePassword(request);
 
       if (request.password == request.newPassword)
-        return Ok(new ErrorsResponse(400, $"The old password is the same as the new one."));
+        throw new CustomException(ErrorTypes.BadRequest, "The old password is the same as the new one");
 
-      bool setData = await _authSundryService.SetDataUpdatePassword(request);
-      if (!setData)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authSundryService.SetDataUpdatePassword(request);
 
-      bool verifiPassword = _authSundryService.VerificationPassword(request.password);
-      if (!verifiPassword)
-        return Ok(new ErrorsResponse(400, "Incorrect password."));
+      _authSundryService.VerificationPassword(request.password);
 
       string newHash = _authSundryService.GetHash(request.newPassword);
-      if (string.IsNullOrEmpty(newHash))
-        return Ok(new ErrorsResponse(500, "Server error."));
 
-      bool success = await _authSundryService.SaveNewPassword(newHash);
-      if (!success)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authSundryService.SaveNewPassword(newHash);
 
-      bool isRemoved = await _authSundryService.RemoveRefreshToken();
-      if (!isRemoved)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authSundryService.RemoveRefreshToken();
 
-      bool sendEmail = await _authSundryService.SendUpdatePasswordEmail();
-      if (!sendEmail)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authSundryService.SendUpdatePasswordEmail();
 
       HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
       HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
 
       return Ok();
     }
+    #endregion
 
+    #region [HttpPost("RecoveryPassword")]
     [SwaggerOperation(
       Summary = "Recovery user password.",
       OperationId = "RecoveryPassword",
@@ -316,34 +265,23 @@ namespace CRM.API.Controllers
     [HttpPost("RecoveryPassword")]
     public async Task<IActionResult> RecoveryPassword(RecoveryPasswordRequest request)
     {
-      var isValidData = _authRecoveryService.ValidationDataRcoveryPass(request);
-      if (!isValidData.IsSuccess)
-        return Ok(new ErrorsResponse(400, $"{isValidData.Field} is incorrect or null."));
+      _authRecoveryService.ValidationDataRecoveryPass(request);
 
-      bool comparison = await _authRecoveryService.СomparisonRecoveryPassData();
-      if (!comparison)
-        return Ok(new ErrorsResponse(400, "Some data doesn't match."));
+      await _authRecoveryService.СomparisonRecoveryPassData(request);
 
       string newPassword = _authRecoveryService.GetNewPassword(16);
-      if (string.IsNullOrEmpty(newPassword))
-        return Ok(new ErrorsResponse(500, "Server error."));
 
-      bool sendEmail = await _authRecoveryService.SendRecoveryPassEmail(newPassword);
-      if (!sendEmail)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authRecoveryService.SendRecoveryPassEmail(newPassword);
 
-      bool savePass = await _authRecoveryService.SaveNewPassword(newPassword);
-      if (!savePass)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authRecoveryService.SaveNewPassword(newPassword);
 
-      bool isRemoved = await _authRecoveryService.RemoveRefreshToken();
-      if (!isRemoved)
-        return Ok(new ErrorsResponse(500, "Server error."));
+      await _authRecoveryService.RemoveRefreshToken();
 
       HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
       HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
 
       return Ok();
     }
+    #endregion
   }
 }

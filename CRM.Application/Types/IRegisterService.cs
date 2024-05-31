@@ -2,17 +2,17 @@
 
 namespace CRM.Application.Types
 {
-    public interface IRegisterService
+  public interface IRegisterService
   {
-    bool AddToModel(RegisterRequest request);
-    ValidationResult ValidationDataRegister();
-    Task<bool> UserIsRegister();
-    bool GetHash();
-    Task<bool> SaveNewUser();
-    Task<bool> RemoveUser();
-    Task<bool> SendEmailConfirmRegister();
-    bool FromBase64ToString(string input);
-    bool ValidationEmail();
-    Task<bool> ConfirmRegister();
+    void AddToModel(RegisterRequest request);
+    void ValidationDataRegister();
+    Task UserIsRegister();
+    void GetHash();
+    Task SaveNewUser();
+    Task RemoveUser();
+    Task SendEmailConfirmRegister();
+    void FromBase64ToString(string input);
+    void ValidationEmail();
+    Task ConfirmRegister();
   }
 }

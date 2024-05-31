@@ -1,10 +1,12 @@
 ﻿using System.Security.Claims;
 using System.Text;
+
 using CRM.Application.RegEx;
-using CRM.Application.Security;
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
 using CRM.Core.Contracts.RestDto;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Models;
 using CRM.Core.Responses;
 using CRM.Data.Types;
@@ -14,7 +16,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services
 {
-    public class SignInService : ISignInService
+  public class SignInService : ISignInService
   {
     private readonly JwtOptions _jwtOptions;
     private readonly ISignInStore _signInStore;
@@ -35,11 +37,9 @@ namespace CRM.Application.Services
       _tokenServices = tokenServices;
     }
 
-    public async Task<bool> SetData(string email)
+    public async Task SetData(string email)
     {
       var user = await _signInStore.FindUserByEmail(email);
-      if (user == null)
-        return false;
       _user = new User
       {
         Id = user.Id,
@@ -56,38 +56,36 @@ namespace CRM.Application.Services
         RegistrationDate = user.RegistrationDate
       };
       if (!_user.IsConfirmed)
-        return false;
-      return true;
+        throw new CustomException(ErrorTypes.BadRequest, "Mail is unconfirmed");
     }
 
-    public ValidationResult ValidationDataSignIn(SignInRequest request)
+    public void ValidationDataSignIn(SignInRequest request)
     {
       bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
       if (!email)
-        return new ValidationResult { IsSuccess = false, Field = "Email" };
+        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
 
       bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
       if (!password)
-        return new ValidationResult { IsSuccess = false, Field = "Password" };
-
-      return new ValidationResult { IsSuccess = true, Field = string.Empty };
+        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
     }
 
-    public bool VerificationHash(string requestPassword)
+    public void VerificationHash(string requestPassword)
     {
       if (_user == null)
-        return false;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hashPassword.GetHash(requestPassword, saltArray);
       bool result = hash == _user.Password;
-      return result;
+      if (!result)
+        throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
     }
 
-    public string GetJwtToken(TypesToken typesTokens)
+    public string GetJwtToken(TokenTypes typesTokens)
     {
       if (_user == null)
-        return string.Empty;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       int tokenLifetime = 30;
       var claims = new List<Claim>
@@ -105,18 +103,17 @@ namespace CRM.Application.Services
       return _tokenServices.CreateJwtToken(claims, tokenLifetime);
     }
 
-    public async Task<bool> SaveToken(string token)
+    public async Task SaveToken(string token)
     {
       if (_user == null)
-        return false;
-      bool result = await _signInStore.SaveToken(_user.Email, token);
-      return result;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      await _signInStore.SaveToken(_user.Email, token);
     }
 
-    public SignInResponse? SetResponse(string refreshToken)
+    public SignInResponse SetResponse(string refreshToken)
     {
       if (_user == null)
-        return null;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       return new SignInResponse
       {
         RefreshToken = refreshToken,
@@ -129,7 +126,7 @@ namespace CRM.Application.Services
       };
     }
 
-    public CookieOptions SetCookieOptions(TypesToken typesTokens)
+    public CookieOptions SetCookieOptions(TokenTypes typesTokens)
     {
       if ((int)typesTokens == 1)
       {

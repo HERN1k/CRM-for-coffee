@@ -4,9 +4,10 @@ using System.Text;
 
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 
-using LogLib.Types;
-
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,11 +16,11 @@ namespace CRM.Application.Security
   public class TokenService : ITokenService
   {
     private readonly JwtOptions _jwtOptions;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<TokenService> _logger;
 
     public TokenService(
         IOptions<JwtOptions> jwtOptions,
-        ILoggerLib logger
+        ILogger<TokenService> logger
       )
     {
       _jwtOptions = jwtOptions.Value;
@@ -43,9 +44,9 @@ namespace CRM.Application.Security
 
     public string TokenDecryption(string token)
     {
-      string result = string.Empty;
       try
       {
+        string result = string.Empty;
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtToken = tokenHandler.ReadJwtToken(token);
         var claims = jwtToken.Payload.Claims.ToList();
@@ -54,15 +55,18 @@ namespace CRM.Application.Security
           if (claim.Type == ClaimTypes.Email)
             result = claim.Value;
         }
+        if (string.IsNullOrEmpty(result))
+          throw new CustomException(ErrorTypes.BadRequest, "Token not found");
+        return result;
       }
       catch (Exception ex)
       {
-        _logger.WriteErrorLog(ex);
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "Token decryption error", ex);
       }
-      return result;
     }
 
-    public async Task<bool> ValidateToken(string token)
+    public async Task ValidateToken(string token)
     {
       try
       {
@@ -81,12 +85,13 @@ namespace CRM.Application.Security
           ClockSkew = TimeSpan.FromMinutes(_jwtOptions.ClockSkewJwt)
         };
         var refreshValidate = await securityToken.ValidateTokenAsync(token, validationParameters);
-        return refreshValidate.IsValid;
+        if (!refreshValidate.IsValid)
+          throw new Exception("Exception");
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new Exception("Exception");
       }
     }
   }

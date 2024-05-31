@@ -4,9 +4,9 @@ namespace CRM.Data.Types
 {
   public interface IRegisterStore
   {
-    Task<bool> FindUserByEmail(string email);
-    Task<bool> SaveNewUser(EntityUser newUser);
-    Task<bool> RemoveUser(string email);
-    Task<bool> ConfirmRegister(string email);
+    Task FindUserByEmail(string email);
+    Task SaveNewUser(EntityUser newUser);
+    Task RemoveUser(string email);
+    Task ConfirmRegister(string email);
   }
 }

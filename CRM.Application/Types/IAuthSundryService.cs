@@ -1,21 +1,22 @@
 ﻿using CRM.Core.Contracts.RestDto;
+
 using Microsoft.AspNetCore.Http;
 
 namespace CRM.Application.Types
 {
-    public interface IAuthSundryService
+  public interface IAuthSundryService
   {
-    bool ValidationEmail(string email);
-    Task<bool> CheckImmutableToken(string email, string refreshToken);
-    Task<bool> ValidateToken(string token);
-    Task<bool> RemoveRefreshToken();
+    void ValidationEmail(string email);
+    Task CheckImmutableToken(string email, string refreshToken);
+    Task ValidateToken(string token);
+    Task RemoveRefreshToken();
     string GetJwtAccessToken();
-    ValidationResult ValidateDataUpdatePassword(UpdatePasswordRequest request);
-    Task<bool> SetDataUpdatePassword(UpdatePasswordRequest request);
-    bool VerificationPassword(string requestPassword);
+    void ValidateDataUpdatePassword(UpdatePasswordRequest request);
+    Task SetDataUpdatePassword(UpdatePasswordRequest request);
+    void VerificationPassword(string requestPassword);
     CookieOptions SetCookieOptions();
     string GetHash(string requestPassword);
-    Task<bool> SaveNewPassword(string password);
-    Task<bool> SendUpdatePasswordEmail();
+    Task SaveNewPassword(string password);
+    Task SendUpdatePasswordEmail();
   }
 }

@@ -12,13 +12,12 @@ using CRM.Data.Stores;
 using CRM.Data.Types;
 using CRM.Infrastructure.Email;
 
-using LogLib;
-using LogLib.Types;
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
+using NLog.Web;
 
 using RazorLight;
 
@@ -26,10 +25,19 @@ namespace CRM.API.Helper
 {
   public class AppBuilder(
       WebApplicationBuilder builder
-      )
+    )
   {
     private readonly WebApplicationBuilder _builder = builder;
 
+    #region Setting up Logger
+    public void ConfigureLogger()
+    {
+      _builder.Logging.ClearProviders();
+      _builder.Host.UseNLog();
+    }
+    #endregion
+
+    #region Setting up CORS
     public void ConfigureCORS()
     {
       _builder.Services.AddCors(options =>
@@ -46,7 +54,9 @@ namespace CRM.API.Helper
         });
       });
     }
+    #endregion
 
+    #region Setting up Base
     public void ConfigureBase()
     {
       _builder.Logging
@@ -55,7 +65,9 @@ namespace CRM.API.Helper
       _builder.Services.AddControllers();
       _builder.Services.AddEndpointsApiExplorer();
     }
+    #endregion
 
+    #region Setting up Swagger
     public void ConfigureSwagger()
     {
       _builder.Services.AddSwaggerGen((options) =>
@@ -69,7 +81,9 @@ namespace CRM.API.Helper
         options.EnableAnnotations();
       });
     }
+    #endregion
 
+    #region Setting up Options
     public void ConfigureOptions()
     {
       _builder.Services.Configure<HttpOptions>(
@@ -85,7 +99,9 @@ namespace CRM.API.Helper
           _builder.Configuration.GetSection(nameof(EmailConfirmRegisterOptions))
         );
     }
+    #endregion
 
+    #region Setting up Authentication
     public void ConfigureAuthentication()
     {
       var jwtOptions = _builder.Configuration.GetSection(nameof(JwtOptions)).Get<JwtOptions>();
@@ -121,7 +137,9 @@ namespace CRM.API.Helper
           };
         });
     }
+    #endregion
 
+    #region Setting up Authorization
     public void ConfigureAuthorization()
     {
       _builder.Services.AddAuthorization((options) =>
@@ -145,7 +163,9 @@ namespace CRM.API.Helper
         ));
       });
     }
+    #endregion
 
+    #region Setting up Db
     public void ConfigureDb()
     {
       _builder.Services.AddDbContext<AppDBContext>((options) =>
@@ -155,7 +175,9 @@ namespace CRM.API.Helper
         //.UseLoggerFactory(LoggerFactory.Create(builder => { builder.AddConsole(); }));
       }, ServiceLifetime.Scoped);
     }
+    #endregion
 
+    #region Setting up SignalR
     public void ConfigureSignalR()
     {
       _builder.Services.AddSignalR((options) =>
@@ -164,7 +186,9 @@ namespace CRM.API.Helper
         options.ClientTimeoutInterval = TimeSpan.FromMinutes(60);
       });
     }
+    #endregion
 
+    #region Setting up GraphQL
     public void ConfigureGraphQL()
     {
       _builder.Services
@@ -177,7 +201,9 @@ namespace CRM.API.Helper
         .AddQueryType<ProductQueries>()
         .AddMutationType<ProductMutations>();
     }
+    #endregion
 
+    #region Setting up Di
     public void ConfigureDi()
     {
       _builder.Services.AddScoped<IHesherService, HesherService>();
@@ -198,7 +224,6 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IAuthRecoveryStore, AuthRecoveryStore>();
       _builder.Services.AddScoped<IProductStore, ProductStore>();
 
-      _builder.Services.AddSingleton<ILoggerLib, LoggerLib>();
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {
         return new RazorLightEngineBuilder()
@@ -210,5 +235,6 @@ namespace CRM.API.Helper
             .Build();
       });
     }
+    #endregion
   }
 }

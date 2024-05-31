@@ -1,27 +1,28 @@
 ﻿using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Data.Types;
 
-using LogLib.Types;
-
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Stores
 {
   public class AuthSundryStore : IAuthSundryStore
   {
     private readonly AppDBContext _context;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<AuthSundryStore> _logger;
 
     public AuthSundryStore(
         AppDBContext context,
-        ILoggerLib logger
+        ILogger<AuthSundryStore> logger
       )
     {
       _context = context;
       _logger = logger;
     }
 
-    public async Task<EntityUser?> FindUserByEmail(string email)
+    public async Task<EntityUser> FindUserByEmail(string email)
     {
       try
       {
@@ -39,7 +40,7 @@ namespace CRM.Data.Stores
           })
           .SingleOrDefaultAsync();
         if (userData == null)
-          return null;
+          throw new Exception("Exception");
         var user = new EntityUser
         {
           Id = userData.Id,
@@ -53,8 +54,8 @@ namespace CRM.Data.Stores
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return null;
+        _logger.LogError(ex.Message);
+        throw new Exception("Exception");
       }
     }
 
@@ -68,33 +69,32 @@ namespace CRM.Data.Stores
           .Select((entity) => new { entity.RefreshTokenString })
           .SingleOrDefaultAsync();
         if (token == null)
-          return string.Empty;
+          throw new Exception("Exception");
         return token.RefreshTokenString;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return string.Empty;
+        _logger.LogError(ex.Message);
+        throw new Exception("Exception");
       }
     }
 
-    public async Task<bool> RemoveRefreshToken(Guid id)
+    public async Task RemoveRefreshToken(Guid id)
     {
       try
       {
         var token = new EntityRefreshToken { UserId = id };
         _context.Entry(token).State = EntityState.Deleted;
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> SaveNewPassword(string email, string password)
+    public async Task SaveNewPassword(string email, string password)
     {
       try
       {
@@ -102,15 +102,14 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
         if (user == null)
-          return false;
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
         user.Password = password;
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
   }

@@ -22,9 +22,9 @@ namespace CRM.Application.Services
       return _tokenService.TokenDecryption(token);
     }
 
-    public async Task<bool> RemoveToken(string email, string refreshToken)
+    public async Task RemoveToken(string email, string refreshToken)
     {
-      return await _signOutStore.RemoveToken(email, refreshToken);
+      await _signOutStore.RemoveToken(email, refreshToken);
     }
   }
 }

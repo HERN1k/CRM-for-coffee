@@ -1,12 +1,13 @@
 ﻿using CRM.Application.Types;
 using CRM.Application.Types.Options;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Infrastructure.Email.EmailModels;
-
-using LogLib.Types;
 
 using MailKit.Net.Smtp;
 using MailKit.Security;
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using MimeKit;
@@ -17,13 +18,13 @@ namespace CRM.Infrastructure.Email
 {
   public class EmailService : IEmailService
   {
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<EmailService> _logger;
     private readonly EmailOptions _emailOptions;
     private readonly EmailConfirmRegisterOptions _emailConfirmRegisterOptions;
     private readonly IRazorLightEngine _razorEngine;
 
     public EmailService(
-        ILoggerLib logger,
+        ILogger<EmailService> logger,
         IOptions<EmailOptions> emailOptions,
         IOptions<EmailConfirmRegisterOptions> emailConfirmRegisterOptions,
         IRazorLightEngine razorEngine
@@ -45,7 +46,7 @@ namespace CRM.Infrastructure.Email
       return message;
     }
 
-    private async Task<bool> SendEmail(MimeMessage message)
+    private void SendEmail(MimeMessage message)
     {
       using var client = new SmtpClient();
       try
@@ -56,17 +57,16 @@ namespace CRM.Infrastructure.Email
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "Email exception", ex);
       }
       finally
       {
         client.Disconnect(true);
       }
-      return true;
     }
 
-    public async Task<bool> SendEmailConfirmRegister(string name, string toEmail, string code, string url)
+    public async Task SendEmailConfirmRegister(string name, string toEmail, string code, string url)
     {
       var model = new ConfirmRegister
       {
@@ -81,11 +81,10 @@ namespace CRM.Infrastructure.Email
         Text = htmlString
       };
       var message = CreateMessage(name, toEmail, body);
-      bool result = await SendEmail(message);
-      return result;
+      SendEmail(message);
     }
 
-    public async Task<bool> SendEmailUpdatePassword(string name, string toEmail)
+    public async Task SendEmailUpdatePassword(string name, string toEmail)
     {
       string htmlString = await _razorEngine.CompileRenderAsync("UpdatePassword", new { });
       var body = new TextPart(MimeKit.Text.TextFormat.Html)
@@ -93,11 +92,10 @@ namespace CRM.Infrastructure.Email
         Text = htmlString
       };
       var message = CreateMessage(name, toEmail, body);
-      bool result = await SendEmail(message);
-      return result;
+      SendEmail(message);
     }
 
-    public async Task<bool> SendEmailRecoveryPassword(string name, string toEmail, string password)
+    public async Task SendEmailRecoveryPassword(string name, string toEmail, string password)
     {
       var model = new RecoveryPassword
       {
@@ -109,8 +107,7 @@ namespace CRM.Infrastructure.Email
         Text = htmlString
       };
       var message = CreateMessage(name, toEmail, body);
-      bool result = await SendEmail(message);
-      return result;
+      SendEmail(message);
     }
   }
 }

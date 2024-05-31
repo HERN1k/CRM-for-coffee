@@ -5,6 +5,9 @@ using CRM.Application.RegEx;
 using CRM.Application.Types;
 using CRM.Application.Types.Options;
 using CRM.Core.Contracts.RestDto;
+using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Models;
 using CRM.Data.Types;
 
@@ -13,7 +16,7 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services
 {
-    public class AuthSundryService : IAuthSundryService
+  public class AuthSundryService : IAuthSundryService
   {
     private readonly JwtOptions _jwtOptions;
     private readonly ITokenService _tokenService;
@@ -37,16 +40,16 @@ namespace CRM.Application.Services
       _emailService = emailService;
     }
 
-    public bool ValidationEmail(string email)
+    public void ValidationEmail(string email)
     {
-      return RegExHelper.ChackString(email, RegExPatterns.Email);
+      bool result = RegExHelper.ChackString(email, RegExPatterns.Email);
+      if (!result)
+        throw new Exception("Exception");
     }
 
-    public async Task<bool> CheckImmutableToken(string email, string refreshToken)
+    public async Task CheckImmutableToken(string email, string refreshToken)
     {
       var user = await _authSundryStore.FindUserByEmail(email);
-      if (user == null)
-        return false;
 
       _user = new User
       {
@@ -57,32 +60,27 @@ namespace CRM.Application.Services
       };
 
       string token = await _authSundryStore.FindTokenById(_user.Id);
-      if (string.IsNullOrEmpty(token))
-        return false;
 
       if (token != refreshToken)
-        return false;
-
-      return true;
+        throw new Exception("Exception");
     }
 
-    public async Task<bool> ValidateToken(string token)
+    public async Task ValidateToken(string token)
     {
-      return await _tokenService.ValidateToken(token);
+      await _tokenService.ValidateToken(token);
     }
 
-    public async Task<bool> RemoveRefreshToken()
+    public async Task RemoveRefreshToken()
     {
       if (_user == null)
-        return false;
-      var result = await _authSundryStore.RemoveRefreshToken(_user.Id);
-      return result;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      await _authSundryStore.RemoveRefreshToken(_user.Id);
     }
 
     public string GetJwtAccessToken()
     {
       if (_user == null)
-        return string.Empty;
+        throw new Exception("Exception");
 
       int tokenLifetime = _jwtOptions.AccessTokenLifetime;
 
@@ -92,32 +90,41 @@ namespace CRM.Application.Services
         new Claim(ClaimTypes.Email, _user.Email),
         new Claim(ClaimTypes.Role, _user.Post),
       };
-
-      return _tokenService.CreateJwtToken(claims, tokenLifetime);
+      string result = _tokenService.CreateJwtToken(claims, tokenLifetime);
+      if (string.IsNullOrEmpty(result))
+        throw new Exception("Exception");
+      return result;
     }
 
-    public ValidationResult ValidateDataUpdatePassword(UpdatePasswordRequest request)
+    public void ValidateDataUpdatePassword(UpdatePasswordRequest request)
     {
       bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
       if (!email)
-        return new ValidationResult { IsSuccess = false, Field = "Email" };
+        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
 
       bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
       if (!password)
-        return new ValidationResult { IsSuccess = false, Field = "Password" };
+        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
 
       bool newPassword = RegExHelper.ChackString(request.newPassword, RegExPatterns.Password);
       if (!newPassword)
-        return new ValidationResult { IsSuccess = false, Field = "New password" };
-
-      return new ValidationResult { IsSuccess = true, Field = string.Empty };
+        throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
     }
 
-    public async Task<bool> SetDataUpdatePassword(UpdatePasswordRequest request)
+    public async Task SetDataUpdatePassword(UpdatePasswordRequest request)
     {
-      var user = await _authSundryStore.FindUserByEmail(request.email);
-      if (user == null)
-        return false;
+      EntityUser user;
+      try
+      { user = await _authSundryStore.FindUserByEmail(request.email); }
+      catch (Exception ex)
+      {
+        if (ex.Message == "Exception")
+        {
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        }
+        throw;
+      }
+
       _user = new User
       {
         Id = user.Id,
@@ -126,18 +133,18 @@ namespace CRM.Application.Services
         Email = user.Email,
         FirstName = user.FirstName,
       };
-      return true;
     }
 
-    public bool VerificationPassword(string requestPassword)
+    public void VerificationPassword(string requestPassword)
     {
       if (_user == null)
-        return false;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hesherService.GetHash(requestPassword, saltArray);
       bool result = hash == _user.Password;
-      return result;
+      if (!result)
+        throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
     }
 
     public CookieOptions SetCookieOptions()
@@ -151,26 +158,38 @@ namespace CRM.Application.Services
     public string GetHash(string requestPassword)
     {
       if (_user == null)
-        return string.Empty;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      return _hesherService.GetHash(requestPassword, saltArray);
-    }
-
-    public async Task<bool> SaveNewPassword(string password)
-    {
-      if (_user == null)
-        return false;
-      bool result = await _authSundryStore.SaveNewPassword(_user.Email, password);
+      string result = _hesherService.GetHash(requestPassword, saltArray);
+      if (string.IsNullOrEmpty(result))
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       return result;
     }
 
-    public async Task<bool> SendUpdatePasswordEmail()
+    public async Task SaveNewPassword(string password)
     {
       if (_user == null)
-        return false;
-      bool result = await _emailService.SendEmailUpdatePassword(_user.FirstName, _user.Email);
-      return result;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      await _authSundryStore.SaveNewPassword(_user.Email, password);
+    }
+
+    public async Task SendUpdatePasswordEmail()
+    {
+      try
+      {
+        if (_user == null)
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        await _emailService.SendEmailUpdatePassword(_user.FirstName, _user.Email);
+      }
+      catch (CustomException ex)
+      {
+        if (ex.Message == "Email exception")
+        {
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        }
+        throw;
+      }
     }
   }
 }

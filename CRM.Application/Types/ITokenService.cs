@@ -6,6 +6,6 @@ namespace CRM.Application.Types
   {
     string CreateJwtToken(List<Claim> claims, int time);
     string TokenDecryption(string token);
-    Task<bool> ValidateToken(string token);
+    Task ValidateToken(string token);
   }
 }

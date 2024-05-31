@@ -1,27 +1,28 @@
 ﻿using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Data.Types;
 
-using LogLib.Types;
-
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Stores
 {
   public class RegisterStore : IRegisterStore
   {
     private readonly AppDBContext _context;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<RegisterStore> _logger;
 
     public RegisterStore(
         AppDBContext context,
-        ILoggerLib logger
+        ILogger<RegisterStore> logger
       )
     {
       _context = context;
       _logger = logger;
     }
 
-    public async Task<bool> FindUserByEmail(string email)
+    public async Task FindUserByEmail(string email)
     {
       try
       {
@@ -29,31 +30,35 @@ namespace CRM.Data.Stores
           .AsNoTracking()
           .Where((entity) => entity.Email == email)
           .AnyAsync();
-        return user;
+        if (user)
+          throw new CustomException(ErrorTypes.BadRequest, "The user has already been registered");
+      }
+      catch (CustomException)
+      {
+        throw;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> SaveNewUser(EntityUser newUser)
+    public async Task SaveNewUser(EntityUser newUser)
     {
       try
       {
         await _context.Users.AddAsync(newUser);
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> RemoveUser(string email)
+    public async Task RemoveUser(string email)
     {
       try
       {
@@ -61,19 +66,18 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
         if (user == null)
-          return true;
+          return;
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> ConfirmRegister(string email)
+    public async Task ConfirmRegister(string email)
     {
       try
       {
@@ -81,15 +85,14 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
         if (user == null)
-          return false;
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
         user.IsConfirmed = true;
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
   }

@@ -1,27 +1,28 @@
 ﻿using CRM.Core.Entities;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Data.Types;
 
-using LogLib.Types;
-
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Stores
 {
   public class SignInStore : ISignInStore
   {
     private readonly AppDBContext _context;
-    private readonly ILoggerLib _logger;
+    private readonly ILogger<SignInStore> _logger;
 
     public SignInStore(
         AppDBContext context,
-        ILoggerLib logger
+        ILogger<SignInStore> logger
       )
     {
       _context = context;
       _logger = logger;
     }
 
-    public async Task<EntityUser?> FindUserByEmail(string email)
+    public async Task<EntityUser> FindUserByEmail(string email)
     {
       try
       {
@@ -29,16 +30,18 @@ namespace CRM.Data.Stores
           .AsNoTracking()
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
+        if (user == null)
+          throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
         return user;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return null;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    public async Task<bool> SaveToken(string email, string token)
+    public async Task SaveToken(string email, string token)
     {
       try
       {
@@ -46,9 +49,9 @@ namespace CRM.Data.Stores
           .Where((entity) => entity.Email == email)
           .SingleOrDefaultAsync();
         if (user == null)
-          return false;
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-        bool checkToken = await СheckToken(user.Id);
+        await СheckToken(user.Id);
 
         var entity = new EntityRefreshToken
         {
@@ -57,16 +60,15 @@ namespace CRM.Data.Stores
         user.RefreshToken = entity;
         await _context.AddAsync(entity);
         await _context.SaveChangesAsync();
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
 
-    private async Task<bool> СheckToken(Guid id)
+    private async Task СheckToken(Guid id)
     {
       try
       {
@@ -78,12 +80,11 @@ namespace CRM.Data.Stores
           _context.RefreshTokens.Remove(token);
           await _context.SaveChangesAsync();
         }
-        return true;
       }
       catch (Exception ex)
       {
-        await _logger.WriteErrorLog(ex);
-        return false;
+        _logger.LogError(ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "DB exception", ex);
       }
     }
   }

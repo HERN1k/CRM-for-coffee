@@ -3,12 +3,14 @@
 using CRM.Application.RegEx;
 using CRM.Application.Types;
 using CRM.Core.Contracts.RestDto;
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Models;
 using CRM.Data.Types;
 
 namespace CRM.Application.Services
 {
-    public class AuthRecoveryService : IAuthRecoveryService
+  public class AuthRecoveryService : IAuthRecoveryService
   {
     private readonly IAuthRecoveryStore _authRecoveryStore;
     private readonly IEmailService _emailService;
@@ -26,19 +28,19 @@ namespace CRM.Application.Services
       _hashPassword = hashPassword;
     }
 
-    public ValidationResult ValidationDataRcoveryPass(RecoveryPasswordRequest request)
+    public void ValidationDataRecoveryPass(RecoveryPasswordRequest request)
     {
       bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
       if (!email)
-        return new ValidationResult { IsSuccess = false, Field = "Email" };
+        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
 
       bool phoneNumber = RegExHelper.ChackString(request.phoneNumber, RegExPatterns.PhoneNumber);
       if (!phoneNumber)
-        return new ValidationResult { IsSuccess = false, Field = "PhoneNumber" };
+        throw new CustomException(ErrorTypes.ValidationError, "Phone number is incorrect or null");
 
       bool post = RegExHelper.ChackString(request.post, RegExPatterns.Post);
       if (!post)
-        return new ValidationResult { IsSuccess = false, Field = "Post" };
+        throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
 
       _user = new User
       {
@@ -46,26 +48,23 @@ namespace CRM.Application.Services
         PhoneNumber = request.phoneNumber,
         Post = request.post
       };
-
-      return new ValidationResult { IsSuccess = true, Field = string.Empty };
     }
 
-    public async Task<bool> СomparisonRecoveryPassData()
+    public async Task СomparisonRecoveryPassData(RecoveryPasswordRequest request)
     {
       if (_user == null)
-        return false;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       var user = await _authRecoveryStore.FindUserByEmail(_user.Email);
-      if (user == null)
-        return false;
-      if (_user.PhoneNumber != user.PhoneNumber)
-        return false;
-      if (_user.Post != user.Post)
-        return false;
       _user.Id = user.Id;
       _user.Email = user.Email;
       _user.Post = user.Post;
+      _user.PhoneNumber = user.PhoneNumber;
       _user.RegistrationDate = user.RegistrationDate;
-      return true;
+
+      if (_user.PhoneNumber != request.phoneNumber)
+        throw new CustomException(ErrorTypes.BadRequest, "Some data doesn't match");
+      if (_user.Post != request.post)
+        throw new CustomException(ErrorTypes.BadRequest, "Some data doesn't match");
     }
 
     public string GetNewPassword(int length)
@@ -82,33 +81,44 @@ namespace CRM.Application.Services
         result[_hashPassword.GetRandomNumber(0, length - 1)] =
           validSigns[_hashPassword.GetRandomNumber(0, validSigns.Length - 1)];
       }
-      return new string(result);
+      string resultString = new string(result);
+      if (string.IsNullOrEmpty(resultString))
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      return resultString;
     }
-    public async Task<bool> SendRecoveryPassEmail(string password)
+    public async Task SendRecoveryPassEmail(string password)
     {
-      if (_user == null)
-        return false;
-      bool result = await _emailService.SendEmailRecoveryPassword(_user.FirstName, _user.Email, password);
-      return result;
+      try
+      {
+        if (_user == null)
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        await _emailService.SendEmailRecoveryPassword(_user.FirstName, _user.Email, password);
+      }
+      catch (CustomException ex)
+      {
+        if (ex.Message == "Email exception")
+        {
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        }
+        throw;
+      }
     }
 
-    public async Task<bool> SaveNewPassword(string password)
+    public async Task SaveNewPassword(string password)
     {
       if (_user == null)
-        return false;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hashPassword.GetHash(password, saltArray);
-      bool result = await _authRecoveryStore.SaveNewPassword(_user.Id, hash);
-      return result;
+      await _authRecoveryStore.SaveNewPassword(_user.Id, hash);
     }
 
-    public async Task<bool> RemoveRefreshToken()
+    public async Task RemoveRefreshToken()
     {
       if (_user == null)
-        return false;
-      var result = await _authRecoveryStore.RemoveRefreshToken(_user.Id);
-      return result;
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      await _authRecoveryStore.RemoveRefreshToken(_user.Id);
     }
   }
 }

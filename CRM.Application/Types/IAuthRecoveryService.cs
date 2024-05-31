@@ -2,13 +2,13 @@
 
 namespace CRM.Application.Types
 {
-    public interface IAuthRecoveryService
+  public interface IAuthRecoveryService
   {
-    ValidationResult ValidationDataRcoveryPass(RecoveryPasswordRequest request);
-    Task<bool> СomparisonRecoveryPassData();
+    void ValidationDataRecoveryPass(RecoveryPasswordRequest request);
+    Task СomparisonRecoveryPassData(RecoveryPasswordRequest request);
     string GetNewPassword(int length);
-    Task<bool> SendRecoveryPassEmail(string password);
-    Task<bool> SaveNewPassword(string password);
-    Task<bool> RemoveRefreshToken();
+    Task SendRecoveryPassEmail(string password);
+    Task SaveNewPassword(string password);
+    Task RemoveRefreshToken();
   }
 }
