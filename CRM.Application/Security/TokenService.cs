@@ -2,10 +2,10 @@
 using System.Security.Claims;
 using System.Text;
 
-using CRM.Application.Types;
-using CRM.Application.Types.Options;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
+using CRM.Core.Interfaces.JwtToken;
+using CRM.Core.Interfaces.Settings;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,27 +15,27 @@ namespace CRM.Application.Security
 {
   public class TokenService : ITokenService
   {
-    private readonly JwtOptions _jwtOptions;
+    private readonly JwtSettings _jwtSettings;
     private readonly ILogger<TokenService> _logger;
 
     public TokenService(
-        IOptions<JwtOptions> jwtOptions,
+        IOptions<JwtSettings> jwtSettings,
         ILogger<TokenService> logger
       )
     {
-      _jwtOptions = jwtOptions.Value;
+      _jwtSettings = jwtSettings.Value;
       _logger = logger;
     }
 
     public string CreateJwtToken(List<Claim> claims, int time)
     {
       var jwt = new JwtSecurityToken(
-              issuer: _jwtOptions.IssuerJwt,
-              audience: _jwtOptions.AudienceJwt,
+              issuer: _jwtSettings.IssuerJwt,
+              audience: _jwtSettings.AudienceJwt,
               claims: claims,
               expires: DateTime.UtcNow.Add(TimeSpan.FromMinutes(time)),
               signingCredentials: new SigningCredentials(
-                  new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecurityKeyJwt)),
+                  new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecurityKeyJwt)),
                   SecurityAlgorithms.HmacSha256
                 ));
 
@@ -74,15 +74,15 @@ namespace CRM.Application.Security
         var validationParameters = new TokenValidationParameters
         {
           ValidateIssuer = true,
-          ValidIssuer = _jwtOptions.IssuerJwt,
+          ValidIssuer = _jwtSettings.IssuerJwt,
           ValidateAudience = true,
-          ValidAudience = _jwtOptions.AudienceJwt,
+          ValidAudience = _jwtSettings.AudienceJwt,
           ValidateLifetime = true,
           ValidateIssuerSigningKey = true,
           IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_jwtOptions.SecurityKeyJwt)
+                Encoding.UTF8.GetBytes(_jwtSettings.SecurityKeyJwt)
               ),
-          ClockSkew = TimeSpan.FromMinutes(_jwtOptions.ClockSkewJwt)
+          ClockSkew = TimeSpan.FromMinutes(_jwtSettings.ClockSkewJwt)
         };
         var refreshValidate = await securityToken.ValidateTokenAsync(token, validationParameters);
         if (!refreshValidate.IsValid)

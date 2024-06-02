@@ -33,7 +33,7 @@ namespace CRM.API
         helper.ConfigureCORS();
         helper.ConfigureBase();
         helper.ConfigureSwagger();
-        helper.ConfigureOptions();
+        helper.ConfigureSettings();
         helper.ConfigureAuthentication();
         helper.ConfigureAuthorization();
         helper.ConfigureDb();
@@ -72,13 +72,8 @@ namespace CRM.API
         #endregion
 
         #region Logger
-        app.Lifetime.ApplicationStarted.Register(() =>
-        {
-          logger.WithProperty("EventId", 0)
-            .Info("Initialization complete");
-          logger.WithProperty("EventId", 0)
-            .Info(string.Empty);
-        });
+        app.Lifetime.ApplicationStarted.Register(() => logger
+          .WithProperty("EventId", 0).Info("Initialization complete"));
         #endregion
 
         app.Run();

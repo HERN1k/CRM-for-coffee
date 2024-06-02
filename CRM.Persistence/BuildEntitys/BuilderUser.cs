@@ -11,7 +11,7 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityUser>()
         .HasOne(e => e.RefreshToken)
         .WithOne(e => e.User)
-        .HasForeignKey<EntityRefreshToken>(e => e.UserId);
+        .HasForeignKey<EntityRefreshToken>(e => e.Id);
 
       modelBuilder.Entity<EntityUser>()
         .HasIndex(e => e.Email)

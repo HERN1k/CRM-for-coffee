@@ -1,4 +1,4 @@
-﻿using CRM.Application.Types;
+﻿using CRM.Core.Interfaces.Hubs;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;

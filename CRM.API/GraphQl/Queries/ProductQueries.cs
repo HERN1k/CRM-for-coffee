@@ -1,21 +1,18 @@
-﻿using CRM.Application.Types;
-using CRM.Core.Entities;
+﻿using CRM.Core.Entities;
 using CRM.Data;
-
-using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Queries
 {
-  [Authorize(Policy = "AdminOrLower")]
+  //[Authorize(Policy = "AdminOrLower")]
   public class ProductQueries
   {
-    private readonly IProductService _productService;
+    //private readonly IDbContextFactory<AppDBContext> _contextFactory;
 
     public ProductQueries(
-        IProductService productService
+      //IDbContextFactory<AppDBContext> contextFactory
       )
     {
-      _productService = productService;
+      //_contextFactory = contextFactory;
     }
 
     [UseProjection]
@@ -23,7 +20,10 @@ namespace CRM.API.GraphQl.Queries
     [UseFiltering()]
     public IQueryable<EntityProductCategory> GetCategorys([Service(ServiceKind.Synchronized)] AppDBContext context)
     {
-      return _productService.GetProductCategory(context);
+      //await using var context = _contextFactory.CreateDbContext();
+      //return context.ProductCategorys;
+
+      return context.ProductCategorys;
     }
   }
 }

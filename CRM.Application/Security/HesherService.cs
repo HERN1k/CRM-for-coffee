@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-using CRM.Application.Types;
+using CRM.Core.Interfaces.PasswordHesher;
 
 namespace CRM.Application.Security
 {

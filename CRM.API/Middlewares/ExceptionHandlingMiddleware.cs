@@ -1,5 +1,6 @@
 ﻿using CRM.Core.Enums;
 using CRM.Core.Exceptions;
+using CRM.Core.Responses;
 
 namespace CRM.API.Middlewares
 {
@@ -61,11 +62,7 @@ namespace CRM.API.Middlewares
           break;
       }
 
-      var response = new
-      {
-        StatusCode = statusCode,
-        Message = message,
-      };
+      var response = new ExceptionResponse(statusCode, message);
 
       return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
     }
@@ -81,11 +78,7 @@ namespace CRM.API.Middlewares
       if (exception.InnerException != null)
         message = exception.InnerException.Message;
 
-      var response = new
-      {
-        StatusCode = statusCode,
-        Message = message,
-      };
+      var response = new ExceptionResponse(statusCode, message);
 
       return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(response));
     }

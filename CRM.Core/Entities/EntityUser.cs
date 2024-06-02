@@ -1,8 +1,10 @@
-﻿namespace CRM.Core.Entities
+﻿using CRM.Core.Entities.BaseEntities;
+
+namespace CRM.Core.Entities
 {
-  public class EntityUser
+  public class EntityUser : BaseEntity
   {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    //public Guid Id { get; set; } = Guid.NewGuid();
     public string Password { get; set; } = null!;
     public string FirstName { get; set; } = null!;
     public string LastName { get; set; } = null!;

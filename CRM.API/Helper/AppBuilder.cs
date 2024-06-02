@@ -1,15 +1,18 @@
 ﻿using System.Security.Claims;
 using System.Text;
 
-using CRM.API.GraphQl.Mutations;
 using CRM.API.GraphQl.Queries;
 using CRM.Application.Security;
-using CRM.Application.Services;
-using CRM.Application.Types;
-using CRM.Application.Types.Options;
+using CRM.Application.Services.AuthServices;
+using CRM.Core.Interfaces.AuthRepository;
+using CRM.Core.Interfaces.AuthServices;
+using CRM.Core.Interfaces.Email;
+using CRM.Core.Interfaces.JwtToken;
+using CRM.Core.Interfaces.PasswordHesher;
+using CRM.Core.Interfaces.Repositories;
+using CRM.Core.Interfaces.Settings;
 using CRM.Data;
-using CRM.Data.Stores;
-using CRM.Data.Types;
+using CRM.Data.Repositories;
 using CRM.Infrastructure.Email;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -83,20 +86,20 @@ namespace CRM.API.Helper
     }
     #endregion
 
-    #region Setting up Options
-    public void ConfigureOptions()
+    #region Setting up Settings
+    public void ConfigureSettings()
     {
-      _builder.Services.Configure<HttpOptions>(
-          _builder.Configuration.GetSection(nameof(HttpOptions))
+      _builder.Services.Configure<HttpSettings>(
+          _builder.Configuration.GetSection(nameof(HttpSettings))
         );
-      _builder.Services.Configure<JwtOptions>(
-          _builder.Configuration.GetSection(nameof(JwtOptions))
+      _builder.Services.Configure<JwtSettings>(
+          _builder.Configuration.GetSection(nameof(JwtSettings))
         );
-      _builder.Services.Configure<EmailOptions>(
-          _builder.Configuration.GetSection(nameof(EmailOptions))
+      _builder.Services.Configure<EmailSettings>(
+          _builder.Configuration.GetSection(nameof(EmailSettings))
         );
-      _builder.Services.Configure<EmailConfirmRegisterOptions>(
-          _builder.Configuration.GetSection(nameof(EmailConfirmRegisterOptions))
+      _builder.Services.Configure<EmailConfirmRegisterSettings>(
+          _builder.Configuration.GetSection(nameof(EmailConfirmRegisterSettings))
         );
     }
     #endregion
@@ -104,11 +107,11 @@ namespace CRM.API.Helper
     #region Setting up Authentication
     public void ConfigureAuthentication()
     {
-      var jwtOptions = _builder.Configuration.GetSection(nameof(JwtOptions)).Get<JwtOptions>();
-      if (jwtOptions == null)
+      var jwtSettings = _builder.Configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>();
+      if (jwtSettings == null)
       {
         Console.WriteLine("Error parse appsettings.json [ ConfigureServices() ].");
-        jwtOptions = new JwtOptions();
+        jwtSettings = new JwtSettings();
       }
       _builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, (options) =>
@@ -116,15 +119,15 @@ namespace CRM.API.Helper
           options.TokenValidationParameters = new TokenValidationParameters
           {
             ValidateIssuer = true,
-            ValidIssuer = jwtOptions.IssuerJwt,
+            ValidIssuer = jwtSettings.IssuerJwt,
             ValidateAudience = true,
-            ValidAudience = jwtOptions.AudienceJwt,
+            ValidAudience = jwtSettings.AudienceJwt,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtOptions.SecurityKeyJwt)
+                Encoding.UTF8.GetBytes(jwtSettings.SecurityKeyJwt)
               ),
-            ClockSkew = TimeSpan.FromMinutes(jwtOptions.ClockSkewJwt)
+            ClockSkew = TimeSpan.FromMinutes(jwtSettings.ClockSkewJwt)
           };
 
           options.Events = new JwtBearerEvents
@@ -168,12 +171,16 @@ namespace CRM.API.Helper
     #region Setting up Db
     public void ConfigureDb()
     {
+      //.EnableSensitiveDataLogging()
+      //.UseLoggerFactory(LoggerFactory.Create(builder => { builder.AddConsole(); }));
+
       _builder.Services.AddDbContext<AppDBContext>((options) =>
       {
         options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings"));
-        //.EnableSensitiveDataLogging()
-        //.UseLoggerFactory(LoggerFactory.Create(builder => { builder.AddConsole(); }));
       }, ServiceLifetime.Scoped);
+
+      //_builder.Services.AddPooledDbContextFactory<AppDBContext>(options =>
+      //  options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings")));
     }
     #endregion
 
@@ -199,13 +206,16 @@ namespace CRM.API.Helper
         .AddFiltering()
         .AddSorting()
         .AddQueryType<ProductQueries>()
-        .AddMutationType<ProductMutations>();
+        .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true);
+      //.AddMutationType<ProductMutations>();
     }
     #endregion
 
     #region Setting up Di
     public void ConfigureDi()
     {
+      _builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
       _builder.Services.AddScoped<IHesherService, HesherService>();
       _builder.Services.AddScoped<ITokenService, TokenService>();
       _builder.Services.AddScoped<IEmailService, EmailService>();
@@ -215,14 +225,11 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<ISignOutService, SignOutService>();
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
-      _builder.Services.AddScoped<IProductService, ProductService>();
 
-      _builder.Services.AddScoped<IRegisterStore, RegisterStore>();
-      _builder.Services.AddScoped<ISignInStore, SignInStore>();
-      _builder.Services.AddScoped<ISignOutStore, SignOutStore>();
-      _builder.Services.AddScoped<IAuthSundryStore, AuthSundryStore>();
-      _builder.Services.AddScoped<IAuthRecoveryStore, AuthRecoveryStore>();
-      _builder.Services.AddScoped<IProductStore, ProductStore>();
+      _builder.Services.AddScoped<ISignInRepository, SignInRepository>();
+      _builder.Services.AddScoped<ISignOutRepository, SignOutRepository>();
+      _builder.Services.AddScoped<IAuthSundryRepository, AuthSundryRepository>();
+      _builder.Services.AddScoped<IAuthRecoveryRepository, AuthRecoveryRepository>();
 
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {

@@ -22,7 +22,7 @@ namespace CRM.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("CRM.Core.Entities.AddOn", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityAddOn", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -48,7 +48,7 @@ namespace CRM.Data.Migrations
                     b.ToTable("AddOns");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.Product", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityProduct", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81,7 +81,7 @@ namespace CRM.Data.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.ProductCategory", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityProductCategory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -103,21 +103,21 @@ namespace CRM.Data.Migrations
                     b.ToTable("ProductCategorys");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.RefreshToken", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityRefreshToken", b =>
                 {
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
                     b.Property<string>("RefreshTokenString")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("UserId");
+                    b.HasKey("Id");
 
                     b.ToTable("RefreshTokens");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.User", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityUser", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -173,9 +173,9 @@ namespace CRM.Data.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.AddOn", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityAddOn", b =>
                 {
-                    b.HasOne("CRM.Core.Entities.Product", "Product")
+                    b.HasOne("CRM.Core.Entities.EntityProduct", "Product")
                         .WithMany("AddOns")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -184,9 +184,9 @@ namespace CRM.Data.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.Product", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityProduct", b =>
                 {
-                    b.HasOne("CRM.Core.Entities.ProductCategory", "ProductCategory")
+                    b.HasOne("CRM.Core.Entities.EntityProductCategory", "ProductCategory")
                         .WithMany("Products")
                         .HasForeignKey("ProductCategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -195,28 +195,28 @@ namespace CRM.Data.Migrations
                     b.Navigation("ProductCategory");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.RefreshToken", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityRefreshToken", b =>
                 {
-                    b.HasOne("CRM.Core.Entities.User", "User")
+                    b.HasOne("CRM.Core.Entities.EntityUser", "User")
                         .WithOne("RefreshToken")
-                        .HasForeignKey("CRM.Core.Entities.RefreshToken", "UserId")
+                        .HasForeignKey("CRM.Core.Entities.EntityRefreshToken", "Id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.Product", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityProduct", b =>
                 {
                     b.Navigation("AddOns");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.ProductCategory", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityProductCategory", b =>
                 {
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("CRM.Core.Entities.User", b =>
+            modelBuilder.Entity("CRM.Core.Entities.EntityUser", b =>
                 {
                     b.Navigation("RefreshToken")
                         .IsRequired();
