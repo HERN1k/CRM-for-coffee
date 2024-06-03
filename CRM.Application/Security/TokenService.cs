@@ -61,7 +61,7 @@ namespace CRM.Application.Security
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex.Message);
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Token decryption error", ex);
       }
     }
@@ -86,12 +86,16 @@ namespace CRM.Application.Security
         };
         var refreshValidate = await securityToken.ValidateTokenAsync(token, validationParameters);
         if (!refreshValidate.IsValid)
-          throw new Exception("Exception");
+          throw new CustomException(ErrorTypes.BadRequest, "Token is not valid");
+      }
+      catch (CustomException)
+      {
+        throw;
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex.Message);
-        throw new Exception("Exception");
+        _logger.LogError(ex, ex.Message);
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
       }
     }
   }

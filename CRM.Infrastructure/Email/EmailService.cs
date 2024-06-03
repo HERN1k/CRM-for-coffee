@@ -59,27 +59,27 @@ namespace CRM.Infrastructure.Email
       catch (MessageNotFoundException ex)
       {
         _logger.LogError(ex, "MailKit message not found exception");
-        throw new CustomException(ErrorTypes.ServerError, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
       }
       catch (ProtocolException ex)
       {
         _logger.LogError(ex, "MailKit protocol exception");
-        throw new CustomException(ErrorTypes.ServerError, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
       }
       catch (ServiceNotAuthenticatedException ex)
       {
         _logger.LogError(ex, "MailKit service not authenticated exception");
-        throw new CustomException(ErrorTypes.ServerError, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
       }
       catch (ServiceNotConnectedException ex)
       {
         _logger.LogError(ex, "MailKit service not connected exception");
-        throw new CustomException(ErrorTypes.ServerError, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "An unexpected MailKit exception");
-        throw new CustomException(ErrorTypes.ServerError, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
       }
       finally
       {

@@ -4,7 +4,6 @@ using System.Text;
 using CRM.API.GraphQl.Queries;
 using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
-using CRM.Core.Interfaces.AuthRepository;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
@@ -215,21 +214,16 @@ namespace CRM.API.Helper
     public void ConfigureDi()
     {
       _builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+      _builder.Services.AddScoped<IEmailService, EmailService>();
 
       _builder.Services.AddScoped<IHesherService, HesherService>();
       _builder.Services.AddScoped<ITokenService, TokenService>();
-      _builder.Services.AddScoped<IEmailService, EmailService>();
 
       _builder.Services.AddScoped<IRegisterService, RegisterService>();
       _builder.Services.AddScoped<ISignInService, SignInService>();
       _builder.Services.AddScoped<ISignOutService, SignOutService>();
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
-
-      _builder.Services.AddScoped<ISignInRepository, SignInRepository>();
-      _builder.Services.AddScoped<ISignOutRepository, SignOutRepository>();
-      _builder.Services.AddScoped<IAuthSundryRepository, AuthSundryRepository>();
-      _builder.Services.AddScoped<IAuthRecoveryRepository, AuthRecoveryRepository>();
 
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {

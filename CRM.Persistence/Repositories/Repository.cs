@@ -24,6 +24,7 @@ namespace CRM.Data.Repositories
       _context = context;
     }
 
+    #region FindSingleAsync
     public async Task<T> FindSingleAsync(Expression<Func<T, bool>> predicate)
     {
       try
@@ -33,9 +34,13 @@ namespace CRM.Data.Repositories
           .SingleOrDefaultAsync();
 
         if (entity == null)
-          throw new NullReferenceException();
+          throw new InvalidOperationException("Entity not found");
 
         return entity;
+      }
+      catch (InvalidOperationException ex)
+      {
+        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
       }
       catch (NullReferenceException)
       {
@@ -45,23 +50,20 @@ namespace CRM.Data.Repositories
       {
         throw new CustomException(ErrorTypes.ServerError, "Argument null exception");
       }
-      catch (InvalidOperationException ex)
-      {
-        _logger.LogError(ex, "Invalid operation exception");
-        throw new CustomException(ErrorTypes.ServerError, "Cannot be executed due to the current state of the object or data context", ex);
-      }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region AnyAsync
     public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
     {
       try
@@ -77,16 +79,18 @@ namespace CRM.Data.Repositories
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region FindManyAsync
     public async Task<IEnumerable<T>> FindManyAsync(Expression<Func<T, bool>> predicate)
     {
       try
@@ -101,16 +105,18 @@ namespace CRM.Data.Repositories
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region GetAllAsync
     public async Task<IEnumerable<T>> GetAllAsync()
     {
       try
@@ -124,25 +130,31 @@ namespace CRM.Data.Repositories
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region AddAsync
     public async Task AddAsync(T entity)
     {
       try
       {
         if (entity == null)
-          throw new ArgumentNullException(string.Empty);
+          throw new InvalidOperationException("Entity not found");
 
         await _context.Set<T>().AddAsync(entity);
         await _context.SaveChangesAsync();
+      }
+      catch (InvalidOperationException ex)
+      {
+        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
       }
       catch (ArgumentNullException)
       {
@@ -154,35 +166,41 @@ namespace CRM.Data.Repositories
       }
       catch (DbUpdateConcurrencyException ex)
       {
-        _logger.LogError(ex, "Database update concurrency exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (DbUpdateException ex)
       {
-        _logger.LogError(ex, "Database update exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region UpdateAsync
     public async Task UpdateAsync(T entity)
     {
       try
       {
         if (entity == null)
-          throw new ArgumentNullException(string.Empty);
+          throw new InvalidOperationException();
 
         _context.Set<T>().Update(entity);
         await _context.SaveChangesAsync();
+      }
+      catch (InvalidOperationException ex)
+      {
+        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
       }
       catch (ArgumentNullException)
       {
@@ -194,35 +212,41 @@ namespace CRM.Data.Repositories
       }
       catch (DbUpdateConcurrencyException ex)
       {
-        _logger.LogError(ex, "Database update concurrency exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (DbUpdateException ex)
       {
-        _logger.LogError(ex, "Database update exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
 
+    #region RemoveAsync
     public async Task RemoveAsync(T entity)
     {
       try
       {
         if (entity == null)
-          throw new ArgumentNullException(string.Empty);
+          throw new InvalidOperationException();
 
         _context.Set<T>().Remove(entity);
         await _context.SaveChangesAsync();
+      }
+      catch (InvalidOperationException ex)
+      {
+        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
       }
       catch (ArgumentNullException)
       {
@@ -234,24 +258,25 @@ namespace CRM.Data.Repositories
       }
       catch (DbUpdateConcurrencyException ex)
       {
-        _logger.LogError(ex, "Database update concurrency exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (DbUpdateException ex)
       {
-        _logger.LogError(ex, "Database update exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "Database update exception", ex);
       }
       catch (OperationCanceledException ex)
       {
-        _logger.LogError(ex, "Operation canceled exception");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "The operation was canceled externally", ex);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "An unexpected exception occurred");
+        _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
+    #endregion
   }
 }

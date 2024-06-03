@@ -33,9 +33,9 @@ namespace CRM.API.Controllers.Auth
     [HttpPost("RecoveryPassword")]
     public async Task<IActionResult> RecoveryPassword(RecoveryPasswordRequest request)
     {
-      _authRecoveryService.ValidationDataRecoveryPass(request);
+      await _authRecoveryService.ValidationDataRecoveryPass(request);
 
-      await _authRecoveryService.СomparisonRecoveryPassData(request);
+      _authRecoveryService.СomparisonRecoveryPassData(request);
 
       string newPassword = _authRecoveryService.GetNewPassword(16);
 

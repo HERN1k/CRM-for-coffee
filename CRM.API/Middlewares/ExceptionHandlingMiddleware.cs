@@ -56,6 +56,14 @@ namespace CRM.API.Middlewares
           context.Response.StatusCode = 401;
           statusCode = ErrorTypes.Unauthorized.GetValue();
           break;
+        case ErrorTypes.InvalidOperationException:
+          context.Response.StatusCode = 500;
+          statusCode = ErrorTypes.InvalidOperationException.GetValue();
+          break;
+        case ErrorTypes.MailKitException:
+          context.Response.StatusCode = 500;
+          statusCode = ErrorTypes.MailKitException.GetValue();
+          break;
         default:
           context.Response.StatusCode = 500;
           statusCode = ErrorTypes.ServerError.GetValue();

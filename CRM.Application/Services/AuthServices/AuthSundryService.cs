@@ -1,15 +1,16 @@
 ﻿using System.Security.Claims;
 using System.Text;
+
 using CRM.Application.RegEx;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
-using CRM.Core.Interfaces.AuthRepository;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
 using CRM.Core.Interfaces.PasswordHesher;
+using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
@@ -18,180 +19,187 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
 {
-    public class AuthSundryService : IAuthSundryService
+  public class AuthSundryService : IAuthSundryService
+  {
+    private readonly JwtSettings _jwtSettings;
+    private readonly IRepository<EntityUser> _userRepository;
+    private readonly IRepository<EntityRefreshToken> _refreshTokenRepository;
+    private readonly ITokenService _tokenService;
+    private readonly IHesherService _hesherService;
+    private readonly IEmailService _emailService;
+    private User? _user { get; set; }
+
+    public AuthSundryService(
+        IOptions<JwtSettings> jwtSettings,
+        IRepository<EntityUser> userRepository,
+        IRepository<EntityRefreshToken> refreshTokenRepository,
+        ITokenService tokenService,
+        IHesherService hesherService,
+        IEmailService emailService
+      )
     {
-        private readonly JwtSettings _jwtSettings;
-        private readonly ITokenService _tokenService;
-        private readonly IHesherService _hesherService;
-        private readonly IAuthSundryRepository _authSundryRepository;
-        private readonly IEmailService _emailService;
-        private User? _user { get; set; }
+      _jwtSettings = jwtSettings.Value;
+      _userRepository = userRepository;
+      _refreshTokenRepository = refreshTokenRepository;
+      _tokenService = tokenService;
+      _hesherService = hesherService;
+      _emailService = emailService;
+    }
 
-        public AuthSundryService(
-            IOptions<JwtSettings> jwtSettings,
-            ITokenService tokenService,
-            IHesherService hesherService,
-            IAuthSundryRepository authSundryRepository,
-            IEmailService emailService
-          )
-        {
-            _jwtSettings = jwtSettings.Value;
-            _tokenService = tokenService;
-            _hesherService = hesherService;
-            _authSundryRepository = authSundryRepository;
-            _emailService = emailService;
-        }
+    public void ValidationEmail(string email)
+    {
+      bool result = RegExHelper.ChackString(email, RegExPatterns.Email);
+      if (!result)
+        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+    }
 
-        public void ValidationEmail(string email)
-        {
-            bool result = RegExHelper.ChackString(email, RegExPatterns.Email);
-            if (!result)
-                throw new Exception("Exception");
-        }
+    public async Task CheckImmutableToken(string email, string refreshToken)
+    {
+      var user = await _userRepository.FindSingleAsync(e => e.Email == email);
 
-        public async Task CheckImmutableToken(string email, string refreshToken)
-        {
-            var user = await _authSundryRepository.FindUserByEmail(email);
+      _user = new User
+      {
+        Id = user.Id,
+        FirstName = user.FirstName,
+        Email = user.Email,
+        Post = user.Post,
+        Age = user.Age,
+        FatherName = user.FatherName,
+        Gender = user.Gender,
+        IsConfirmed = user.IsConfirmed,
+        LastName = user.LastName,
+        Password = user.Password,
+        PhoneNumber = user.PhoneNumber,
+        RegistrationDate = user.RegistrationDate
+      };
 
-            _user = new User
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                Email = user.Email,
-                Post = user.Post
-            };
+      var token = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
 
-            string token = await _authSundryRepository.FindTokenById(_user.Id);
+      if (token.RefreshTokenString != refreshToken)
+        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+    }
 
-            if (token != refreshToken)
-                throw new Exception("Exception");
-        }
+    public async Task ValidateToken(string token)
+    {
+      await _tokenService.ValidateToken(token);
+    }
 
-        public async Task ValidateToken(string token)
-        {
-            await _tokenService.ValidateToken(token);
-        }
+    public async Task RemoveRefreshToken()
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-        public async Task RemoveRefreshToken()
-        {
-            if (_user == null)
-                throw new CustomException(ErrorTypes.ServerError, "Server error");
-            await _authSundryRepository.RemoveRefreshToken(_user.Id);
-        }
+      var removeToken = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+      await _refreshTokenRepository.RemoveAsync(removeToken);
+    }
 
-        public string GetJwtAccessToken()
-        {
-            if (_user == null)
-                throw new Exception("Exception");
+    public string GetJwtAccessToken()
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-            int tokenLifetime = _jwtSettings.AccessTokenLifetime;
+      int tokenLifetime = _jwtSettings.AccessTokenLifetime;
 
-            var claims = new List<Claim>
+      var claims = new List<Claim>
       {
         new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
         new Claim(ClaimTypes.Email, _user.Email),
         new Claim(ClaimTypes.Role, _user.Post),
       };
-            string result = _tokenService.CreateJwtToken(claims, tokenLifetime);
-            if (string.IsNullOrEmpty(result))
-                throw new Exception("Exception");
-            return result;
-        }
-
-        public void ValidateDataUpdatePassword(UpdatePasswordRequest request)
-        {
-            bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
-            if (!email)
-                throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
-
-            bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
-            if (!password)
-                throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
-
-            bool newPassword = RegExHelper.ChackString(request.newPassword, RegExPatterns.Password);
-            if (!newPassword)
-                throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
-        }
-
-        public async Task SetDataUpdatePassword(UpdatePasswordRequest request)
-        {
-            EntityUser user;
-            try
-            { user = await _authSundryRepository.FindUserByEmail(request.email); }
-            catch (Exception ex)
-            {
-                if (ex.Message == "Exception")
-                {
-                    throw new CustomException(ErrorTypes.ServerError, "Server error");
-                }
-                throw;
-            }
-
-            _user = new User
-            {
-                Id = user.Id,
-                Password = user.Password,
-                RegistrationDate = user.RegistrationDate,
-                Email = user.Email,
-                FirstName = user.FirstName,
-            };
-        }
-
-        public void VerificationPassword(string requestPassword)
-        {
-            if (_user == null)
-                throw new CustomException(ErrorTypes.ServerError, "Server error");
-            string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
-            byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-            string hash = _hesherService.GetHash(requestPassword, saltArray);
-            bool result = hash == _user.Password;
-            if (!result)
-                throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
-        }
-
-        public CookieOptions SetCookieOptions()
-        {
-            return new CookieOptions
-            {
-                MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
-            };
-        }
-
-        public string GetHash(string requestPassword)
-        {
-            if (_user == null)
-                throw new CustomException(ErrorTypes.ServerError, "Server error");
-            string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
-            byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-            string result = _hesherService.GetHash(requestPassword, saltArray);
-            if (string.IsNullOrEmpty(result))
-                throw new CustomException(ErrorTypes.ServerError, "Server error");
-            return result;
-        }
-
-        public async Task SaveNewPassword(string password)
-        {
-            if (_user == null)
-                throw new CustomException(ErrorTypes.ServerError, "Server error");
-            await _authSundryRepository.SaveNewPassword(_user.Email, password);
-        }
-
-        public async Task SendUpdatePasswordEmail()
-        {
-            try
-            {
-                if (_user == null)
-                    throw new CustomException(ErrorTypes.ServerError, "Server error");
-                await _emailService.SendEmailUpdatePassword(_user.FirstName, _user.Email);
-            }
-            catch (CustomException ex)
-            {
-                if (ex.Message == "Email exception")
-                {
-                    throw new CustomException(ErrorTypes.ServerError, "Server error");
-                }
-                throw;
-            }
-        }
+      string result = _tokenService.CreateJwtToken(claims, tokenLifetime);
+      if (string.IsNullOrEmpty(result))
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      return result;
     }
+
+    public async Task ValidateDataUpdatePassword(UpdatePasswordRequest request)
+    {
+      bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
+      if (!email)
+        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
+
+      bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
+      if (!password)
+        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
+
+      bool newPassword = RegExHelper.ChackString(request.newPassword, RegExPatterns.Password);
+      if (!newPassword)
+        throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
+
+      var user = await _userRepository.FindSingleAsync(e => e.Email == request.email);
+      _user = new User
+      {
+        Id = user.Id,
+        FirstName = user.FirstName,
+        Email = user.Email,
+        Post = user.Post,
+        Age = user.Age,
+        FatherName = user.FatherName,
+        Gender = user.Gender,
+        IsConfirmed = user.IsConfirmed,
+        LastName = user.LastName,
+        Password = user.Password,
+        PhoneNumber = user.PhoneNumber,
+        RegistrationDate = user.RegistrationDate
+      };
+    }
+
+    public void VerificationPassword(string input)
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
+      string hash = _hesherService.GetHash(input, saltArray);
+      bool result = hash == _user.Password;
+      if (!result)
+        throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
+    }
+
+    public CookieOptions SetCookieOptions()
+    {
+      return new CookieOptions
+      {
+        MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
+      };
+    }
+
+    public string GetHash(string input)
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
+      string result = _hesherService.GetHash(input, saltArray);
+      if (string.IsNullOrEmpty(result))
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      return result;
+    }
+
+    public async Task SaveNewPassword(string input)
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      var user = await _userRepository.FindSingleAsync(e => e.Id == _user.Id);
+      user.Password = input;
+      await _userRepository.UpdateAsync(user);
+    }
+
+    public async Task SendUpdatePasswordEmail()
+    {
+      try
+      {
+        if (_user == null)
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+        await _emailService.SendEmailUpdatePassword(_user.FirstName, _user.Email);
+      }
+      catch (CustomException ex)
+      {
+        if (ex.ErrorType == ErrorTypes.MailKitException)
+          throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
+        throw;
+      }
+    }
+  }
 }

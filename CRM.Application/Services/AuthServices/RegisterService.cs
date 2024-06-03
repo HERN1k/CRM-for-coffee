@@ -12,7 +12,6 @@ using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
@@ -20,51 +19,40 @@ namespace CRM.Application.Services.AuthServices
   public class RegisterService : IRegisterService
   {
     private readonly HttpSettings _httpSettings;
-    private readonly IRepository<EntityUser> _userRepository;
+    private readonly IRepository<EntityUser> _repository;
     private readonly IHesherService _hashPassword;
     private readonly IEmailService _emailService;
-    private readonly ILogger<RegisterService> _logger;
     private User? _user { get; set; }
 
     public RegisterService(
         IOptions<HttpSettings> httpSettings,
-        IRepository<EntityUser> userRepository,
+        IRepository<EntityUser> repository,
         IHesherService hashPassword,
-        IEmailService emailService,
-        ILogger<RegisterService> logger
+        IEmailService emailService
       )
     {
       _httpSettings = httpSettings.Value;
-      _userRepository = userRepository;
+      _repository = repository;
       _hashPassword = hashPassword;
       _emailService = emailService;
-      _logger = logger;
     }
 
     public void AddToModel(RegisterRequest request)
     {
-      try
+      _user = new User
       {
-        _user = new User
-        {
-          FirstName = request.firstName,
-          LastName = request.lastName,
-          FatherName = request.fatherName,
-          Email = request.email,
-          Password = request.password,
-          Post = request.post,
-          Age = request.age,
-          Gender = request.gender,
-          PhoneNumber = request.phoneNumber,
-          IsConfirmed = false,
-          RegistrationDate = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")
-        };
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex.Message);
-        throw new CustomException(ErrorTypes.ServerError, string.Empty, ex);
-      }
+        FirstName = request.firstName,
+        LastName = request.lastName,
+        FatherName = request.fatherName,
+        Email = request.email,
+        Password = request.password,
+        Post = request.post,
+        Age = request.age,
+        Gender = request.gender,
+        PhoneNumber = request.phoneNumber,
+        IsConfirmed = false,
+        RegistrationDate = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")
+      };
     }
 
     public void ValidationDataRegister()
@@ -113,7 +101,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      bool isRegistered = await _userRepository.AnyAsync((e) => e.Email == _user.Email);
+      bool isRegistered = await _repository.AnyAsync((e) => e.Email == _user.Email);
       if (isRegistered)
         throw new CustomException(ErrorTypes.BadRequest, "The user has already been registered");
     }
@@ -146,7 +134,7 @@ namespace CRM.Application.Services.AuthServices
         IsConfirmed = true, // важно удалить!
         RegistrationDate = _user.RegistrationDate
       };
-      await _userRepository.AddAsync(user);
+      await _repository.AddAsync(user);
     }
 
     public async Task SendEmailConfirmRegister()
@@ -170,14 +158,14 @@ namespace CRM.Application.Services.AuthServices
       }
       catch (CustomException ex)
       {
-        if (ex.Message == "MailKit exception")
+        if (ex.ErrorType == ErrorTypes.MailKitException)
         {
           if (_user != null)
           {
-            var removeEntity = await _userRepository.FindSingleAsync(e => e.Email == _user.Email);
-            await _userRepository.RemoveAsync(removeEntity);
+            var removeEntity = await _repository.FindSingleAsync(e => e.Email == _user.Email);
+            await _repository.RemoveAsync(removeEntity);
           }
-          throw new CustomException(ErrorTypes.ServerError, "The email was not sent");
+          throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
         }
         throw;
       }
@@ -206,10 +194,10 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var user = await _userRepository.FindSingleAsync(e => e.Email == _user.Email);
+      var user = await _repository.FindSingleAsync(e => e.Email == _user.Email);
       user.IsConfirmed = true;
 
-      await _userRepository.UpdateAsync(user);
+      await _repository.UpdateAsync(user);
     }
   }
 }

@@ -11,8 +11,7 @@ namespace CRM.Core.Interfaces.AuthServices
     Task ValidateToken(string token);
     Task RemoveRefreshToken();
     string GetJwtAccessToken();
-    void ValidateDataUpdatePassword(UpdatePasswordRequest request);
-    Task SetDataUpdatePassword(UpdatePasswordRequest request);
+    Task ValidateDataUpdatePassword(UpdatePasswordRequest request);
     void VerificationPassword(string requestPassword);
     CookieOptions SetCookieOptions();
     string GetHash(string requestPassword);

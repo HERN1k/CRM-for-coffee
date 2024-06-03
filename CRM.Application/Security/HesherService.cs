@@ -1,5 +1,8 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 
+using CRM.Core.Enums;
+using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.PasswordHesher;
 
 namespace CRM.Application.Security
@@ -13,6 +16,48 @@ namespace CRM.Application.Security
       string result = Convert.ToBase64String(hashArray);
       pbkdf2.Dispose();
       return result;
+    }
+
+    public string GetRandomPassword(int length)
+    {
+      if (length < 8)
+        throw new CustomException(ErrorTypes.InvalidOperationException, "The minimum line length must be 8 characters");
+
+      const string validUpperCaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      const string validLowerCaseChars = "abcdefghijklmnopqrstuvwxyz";
+      const string validNumbers = "0123456789";
+      const string validSigns = "@$!%*?&";
+      int otherСharsLength = (int)Math.Ceiling((float)(length / 4));
+
+      var stringBuilder = new StringBuilder(length);
+
+      for (int i = 0; i < length; i++)
+      {
+        stringBuilder.Insert(i, validUpperCaseChars[GetRandomNumber(0, validUpperCaseChars.Length - 1)]);
+      }
+      for (int i = 0; i < otherСharsLength; i++)
+      {
+        stringBuilder.Insert(
+          GetRandomNumber(0, length - 1),
+          validLowerCaseChars[GetRandomNumber(0, validLowerCaseChars.Length - 1)]
+        );
+      }
+      for (int i = 0; i < otherСharsLength; i++)
+      {
+        stringBuilder.Insert(
+          GetRandomNumber(0, length - 1),
+          validNumbers[GetRandomNumber(0, validNumbers.Length - 1)]
+        );
+      }
+      for (int i = 0; i < otherСharsLength; i++)
+      {
+        stringBuilder.Insert(
+          GetRandomNumber(0, length - 1),
+          validSigns[GetRandomNumber(0, validSigns.Length - 1)]
+        );
+      }
+
+      return stringBuilder.ToString();
     }
 
     public int GetRandomNumber(int min, int max)

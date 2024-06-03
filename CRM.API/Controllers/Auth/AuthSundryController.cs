@@ -39,13 +39,13 @@ namespace CRM.API.Controllers.Auth
       {
         string? refreshToken = HttpContext.Request.Cookies["refreshToken"];
         if (string.IsNullOrEmpty(refreshToken))
-          throw new Exception("Exception");
+          throw new CustomException(ErrorTypes.BadRequest, "Token not found");
 
         _authSundryService.ValidationEmail(request.email);
 
-        await _authSundryService.CheckImmutableToken(request.email, refreshToken);
-
         await _authSundryService.ValidateToken(refreshToken);
+
+        await _authSundryService.CheckImmutableToken(request.email, refreshToken);
 
         string accessToken = _authSundryService.GetJwtAccessToken();
 
@@ -53,15 +53,17 @@ namespace CRM.API.Controllers.Auth
 
         return Ok();
       }
+      catch (CustomException ex)
+      {
+        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
+        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
+        throw new CustomException(ErrorTypes.Unauthorized, ex.Message);
+      }
       catch (Exception ex)
       {
-        if (ex.Message == "Exception")
-        {
-          HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-          HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-          throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
-        }
-        throw;
+        HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
+        HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
+        throw new CustomException(ErrorTypes.Unauthorized, ex.Message);
       }
     }
 
@@ -77,12 +79,10 @@ namespace CRM.API.Controllers.Auth
     [Authorize]
     public async Task<IActionResult> UpdatePassword(UpdatePasswordRequest request)
     {
-      _authSundryService.ValidateDataUpdatePassword(request);
+      await _authSundryService.ValidateDataUpdatePassword(request);
 
       if (request.password == request.newPassword)
         throw new CustomException(ErrorTypes.BadRequest, "The old password is the same as the new one");
-
-      await _authSundryService.SetDataUpdatePassword(request);
 
       _authSundryService.VerificationPassword(request.password);
 
