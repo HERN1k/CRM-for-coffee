@@ -1,13 +1,17 @@
 ﻿using System.Security.Claims;
 using System.Text;
 
+using CRM.API.GraphQl.Mutations;
 using CRM.API.GraphQl.Queries;
 using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
+using CRM.Application.Services.ProductsServices;
+using CRM.Core.GraphQlTypes.ProductTypes;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
 using CRM.Core.Interfaces.PasswordHesher;
+using CRM.Core.Interfaces.ProductsServices;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Data;
@@ -170,16 +174,13 @@ namespace CRM.API.Helper
     #region Setting up Db
     public void ConfigureDb()
     {
-      //.EnableSensitiveDataLogging()
-      //.UseLoggerFactory(LoggerFactory.Create(builder => { builder.AddConsole(); }));
+      //_builder.Services.AddDbContext<AppDBContext>((options) =>
+      //{
+      //  options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings"));
+      //}, ServiceLifetime.Scoped);
 
-      _builder.Services.AddDbContext<AppDBContext>((options) =>
-      {
-        options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings"));
-      }, ServiceLifetime.Scoped);
-
-      //_builder.Services.AddPooledDbContextFactory<AppDBContext>(options =>
-      //  options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings")));
+      _builder.Services.AddPooledDbContextFactory<AppDBContext>(options =>
+        options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings")));
     }
     #endregion
 
@@ -199,14 +200,19 @@ namespace CRM.API.Helper
     {
       _builder.Services
         .AddGraphQLServer()
+        .RegisterDbContext<AppDBContext>(DbContextKind.Pooled)
         .AddAuthorization()
         .AddErrorFilter<GraphQlErrorFilter>()
         .AddProjections()
         .AddFiltering()
         .AddSorting()
-        .AddQueryType<ProductQueries>()
+        .AddQueryType<ProductsQueries>()
+        .AddType<ProductCategoryType>()
+        .AddType<ProductType>()
+        .AddType<AddOnType>()
+        .AddMutationType<ProductsMutations>()
+        .AddDefaultTransactionScopeHandler()
         .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true);
-      //.AddMutationType<ProductMutations>();
     }
     #endregion
 
@@ -224,6 +230,8 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<ISignOutService, SignOutService>();
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
+
+      _builder.Services.AddScoped<IProductsService, ProductsService>();
 
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {

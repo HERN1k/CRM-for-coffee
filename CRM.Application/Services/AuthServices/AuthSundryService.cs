@@ -56,6 +56,8 @@ namespace CRM.Application.Services.AuthServices
     public async Task CheckImmutableToken(string email, string refreshToken)
     {
       var user = await _userRepository.FindSingleAsync(e => e.Email == email);
+      if (user == null)
+        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
       _user = new User
       {
@@ -74,15 +76,15 @@ namespace CRM.Application.Services.AuthServices
       };
 
       var token = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+      if (token == null)
+        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
       if (token.RefreshTokenString != refreshToken)
         throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
     }
 
-    public async Task ValidateToken(string token)
-    {
+    public async Task ValidateToken(string token) =>
       await _tokenService.ValidateToken(token);
-    }
 
     public async Task RemoveRefreshToken()
     {
@@ -90,6 +92,9 @@ namespace CRM.Application.Services.AuthServices
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       var removeToken = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+      if (removeToken == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       await _refreshTokenRepository.RemoveAsync(removeToken);
     }
 
@@ -106,9 +111,11 @@ namespace CRM.Application.Services.AuthServices
         new Claim(ClaimTypes.Email, _user.Email),
         new Claim(ClaimTypes.Role, _user.Post),
       };
+
       string result = _tokenService.CreateJwtToken(claims, tokenLifetime);
       if (string.IsNullOrEmpty(result))
         throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       return result;
     }
 
@@ -127,6 +134,9 @@ namespace CRM.Application.Services.AuthServices
         throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
 
       var user = await _userRepository.FindSingleAsync(e => e.Email == request.email);
+      if (user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       _user = new User
       {
         Id = user.Id,
@@ -182,7 +192,11 @@ namespace CRM.Application.Services.AuthServices
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       var user = await _userRepository.FindSingleAsync(e => e.Id == _user.Id);
+      if (user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       user.Password = input;
+
       await _userRepository.UpdateAsync(user);
     }
 

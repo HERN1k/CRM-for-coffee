@@ -46,17 +46,10 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task SetData(string email)
     {
-      EntityUser user;
-      try
-      {
-        user = await _userRepository.FindSingleAsync(e => e.Email == email);
-      }
-      catch (CustomException ex)
-      {
-        if (ex.ErrorType == ErrorTypes.InvalidOperationException)
-          throw new CustomException(ErrorTypes.InvalidOperationException, "The user is not registered");
-        throw;
-      }
+      var user = await _userRepository.FindSingleAsync(e => e.Email == email);
+      if (user == null)
+        throw new CustomException(ErrorTypes.InvalidOperationException, "The user is not registered");
+
       _user = new User
       {
         Id = user.Id,
@@ -130,7 +123,11 @@ namespace CRM.Application.Services.AuthServices
       if (tokenSaved)
       {
         var updateToken = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+        if (updateToken == null)
+          throw new CustomException(ErrorTypes.ServerError, "Server error");
+
         updateToken.RefreshTokenString = token;
+
         await _refreshTokenRepository.UpdateAsync(updateToken);
         return;
       }
@@ -162,14 +159,14 @@ namespace CRM.Application.Services.AuthServices
 
     public CookieOptions SetCookieOptions(TokenTypes typesTokens)
     {
-      if ((int)typesTokens == 1)
+      if (typesTokens == TokenTypes.Access)
       {
         return new CookieOptions
         {
           MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
         };
       }
-      else if ((int)typesTokens == 2)
+      else if (typesTokens == TokenTypes.Refresh)
       {
         return new CookieOptions
         {

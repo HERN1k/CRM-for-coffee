@@ -159,14 +159,7 @@ namespace CRM.Application.Services.AuthServices
       catch (CustomException ex)
       {
         if (ex.ErrorType == ErrorTypes.MailKitException)
-        {
-          if (_user != null)
-          {
-            var removeEntity = await _repository.FindSingleAsync(e => e.Email == _user.Email);
-            await _repository.RemoveAsync(removeEntity);
-          }
           throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
-        }
         throw;
       }
     }
@@ -195,6 +188,9 @@ namespace CRM.Application.Services.AuthServices
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       var user = await _repository.FindSingleAsync(e => e.Email == _user.Email);
+      if (user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       user.IsConfirmed = true;
 
       await _repository.UpdateAsync(user);

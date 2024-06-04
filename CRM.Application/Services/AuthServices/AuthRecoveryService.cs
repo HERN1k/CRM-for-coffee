@@ -49,6 +49,8 @@ namespace CRM.Application.Services.AuthServices
         throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
 
       var user = await _userRepository.FindSingleAsync(e => e.Email == request.email);
+      if (user == null)
+        throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
 
       _user = new User
       {
@@ -120,7 +122,11 @@ namespace CRM.Application.Services.AuthServices
       string hash = _hashPassword.GetHash(password, saltArray);
 
       var user = await _userRepository.FindSingleAsync(e => e.Id == _user.Id);
+      if (user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
       user.Password = hash;
+
       await _userRepository.UpdateAsync(user);
     }
 

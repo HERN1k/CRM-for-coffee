@@ -10,45 +10,36 @@ using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Repositories
 {
-  public class Repository<T> : IRepository<T> where T : class
+  public class Repository<T> : IAsyncDisposable, IRepository<T> where T : class
   {
-    protected readonly ILogger<Repository<T>> _logger;
-    protected readonly AppDBContext _context;
+    private readonly ILogger<Repository<T>> _logger;
+    private readonly AppDBContext _сontext;
 
     public Repository(
         ILogger<Repository<T>> logger,
-        AppDBContext context
+        IDbContextFactory<AppDBContext> contextFactory
       )
     {
       _logger = logger;
-      _context = context;
+      _сontext = contextFactory.CreateDbContext();
     }
 
     #region FindSingleAsync
-    public async Task<T> FindSingleAsync(Expression<Func<T, bool>> predicate)
+    public async Task<T?> FindSingleAsync(Expression<Func<T, bool>> predicate)
     {
       try
       {
-        var entity = await _context.Set<T>()
+        return await _сontext.Set<T>()
           .Where(predicate)
           .SingleOrDefaultAsync();
-
-        if (entity == null)
-          throw new InvalidOperationException("Entity not found");
-
-        return entity;
-      }
-      catch (InvalidOperationException ex)
-      {
-        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
-      }
-      catch (NullReferenceException)
-      {
-        throw new CustomException(ErrorTypes.ServerError, "Null reference exception");
       }
       catch (ArgumentNullException)
       {
         throw new CustomException(ErrorTypes.ServerError, "Argument null exception");
+      }
+      catch (InvalidOperationException ex)
+      {
+        throw new CustomException(ErrorTypes.InvalidOperationException, ex.Message);
       }
       catch (OperationCanceledException ex)
       {
@@ -68,7 +59,7 @@ namespace CRM.Data.Repositories
     {
       try
       {
-        return await _context.Set<T>()
+        return await _сontext.Set<T>()
           .AsNoTracking()
           .Where(predicate)
           .AnyAsync();
@@ -95,7 +86,7 @@ namespace CRM.Data.Repositories
     {
       try
       {
-        return await _context.Set<T>()
+        return await _сontext.Set<T>()
           .Where(predicate)
           .ToListAsync();
       }
@@ -116,12 +107,19 @@ namespace CRM.Data.Repositories
     }
     #endregion
 
-    #region GetAllAsync
-    public async Task<IEnumerable<T>> GetAllAsync()
+    #region GetQueryable
+    public IQueryable<T> GetQueryable()
+    {
+      return _сontext.Set<T>();
+    }
+    #endregion
+
+    #region GetEnumerable
+    public async Task<IEnumerable<T>> GetEnumerable()
     {
       try
       {
-        return await _context.Set<T>()
+        return await _сontext.Set<T>()
           .ToListAsync();
       }
       catch (ArgumentNullException)
@@ -149,8 +147,8 @@ namespace CRM.Data.Repositories
         if (entity == null)
           throw new InvalidOperationException("Entity not found");
 
-        await _context.Set<T>().AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await _сontext.Set<T>().AddAsync(entity);
+        await _сontext.SaveChangesAsync();
       }
       catch (InvalidOperationException ex)
       {
@@ -195,8 +193,8 @@ namespace CRM.Data.Repositories
         if (entity == null)
           throw new InvalidOperationException();
 
-        _context.Set<T>().Update(entity);
-        await _context.SaveChangesAsync();
+        _сontext.Set<T>().Update(entity);
+        await _сontext.SaveChangesAsync();
       }
       catch (InvalidOperationException ex)
       {
@@ -241,8 +239,8 @@ namespace CRM.Data.Repositories
         if (entity == null)
           throw new InvalidOperationException();
 
-        _context.Set<T>().Remove(entity);
-        await _context.SaveChangesAsync();
+        _сontext.Set<T>().Remove(entity);
+        await _сontext.SaveChangesAsync();
       }
       catch (InvalidOperationException ex)
       {
@@ -276,6 +274,13 @@ namespace CRM.Data.Repositories
         _logger.LogError(ex, ex.Message);
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
+    }
+    #endregion
+
+    #region DisposeAsync
+    public ValueTask DisposeAsync()
+    {
+      return _сontext.DisposeAsync();
     }
     #endregion
   }

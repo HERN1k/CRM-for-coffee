@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using CRM.Core.Exceptions;
+
+using Microsoft.EntityFrameworkCore;
 
 using Npgsql;
 
@@ -8,13 +10,13 @@ namespace CRM.API.Helper
   {
     public IError OnError(IError error)
     {
-      if (error.Exception is DbUpdateException dbUpdateException)
+      if (error.Exception is DbUpdateException dbException)
       {
-        var pgException = dbUpdateException.InnerException as PostgresException;
+        var pgException = dbException.InnerException as PostgresException;
         if (pgException != null && pgException.SqlState == "23505")
         {
           return ErrorBuilder.FromError(error)
-            .SetMessage("Violation of uniqueness of values.")
+            .SetMessage("Violation of uniqueness of values")
             .SetCode("UNIQUE_CONSTRAINT_VIOLATION")
             .RemoveException()
             .ClearExtensions()
@@ -24,8 +26,19 @@ namespace CRM.API.Helper
         }
 
         return ErrorBuilder.FromError(error)
-          .SetMessage("A database error occurred.")
+          .SetMessage("A database error occurred")
           .SetCode("DATABASE_ERROR")
+          .RemoveException()
+          .ClearExtensions()
+          .ClearLocations()
+          .Build();
+      }
+
+      if (error.Exception is CustomException customException)
+      {
+        return ErrorBuilder.FromError(error)
+          .SetMessage(customException.Message)
+          .SetCode(customException.ErrorType.ToString())
           .RemoveException()
           .ClearExtensions()
           .ClearLocations()

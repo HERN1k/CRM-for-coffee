@@ -51,6 +51,7 @@ namespace CRM.API
           app.UseSwaggerUI();
         }
 
+        app.UseHsts();
         app.UseCors("mainCors");
 
         app.UseCookiePolicy(new CookiePolicyOptions
@@ -65,7 +66,7 @@ namespace CRM.API
         app.MapControllers();
 
         app.MapHub<ChackoutHub>("/Api/ChackoutHub");
-        app.MapGraphQL("/Api/GraphQl");
+        app.MapGraphQL("/Api/GraphQl"); // .RequireAuthorization()
 
         app.UseMiddleware<LogFactoryMiddleware>();
         app.UseMiddleware<ExceptionHandlingMiddleware>();

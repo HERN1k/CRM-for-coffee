@@ -11,6 +11,7 @@
     <PackageReference Include="HotChocolate.AspNetCore" Version="13.9.5" />
     <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="13.9.5" />
     <PackageReference Include="HotChocolate.Data" Version="13.9.5" />
+    <PackageReference Include="HotChocolate.Types" Version="13.9.5" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Common" Version="8.0.5" />
     <PackageReference Include="MimeKit" Version="4.5.0" />

@@ -64,9 +64,9 @@ namespace CRM.API.Controllers.Auth
 
       _registerService.GetHash();
 
-      await _registerService.SaveNewUser(); // внутри важно удалить!
-
       //await _registerService.SendEmailConfirmRegister();
+
+      await _registerService.SaveNewUser(); // внутри важно удалить!
 
       return Ok();
     }
