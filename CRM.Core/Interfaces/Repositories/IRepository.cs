@@ -11,6 +11,7 @@ namespace CRM.Core.Interfaces.Repositories
     Task<IEnumerable<T>> GetEnumerable();
     Task AddAsync(T entity);
     Task UpdateAsync(T entity);
-    Task RemoveAsync(T entity);
+    Task RemoveAsync(Expression<Func<T, bool>> predicate);
+    Task RemoveManyAsync(List<T> entities);
   }
 }

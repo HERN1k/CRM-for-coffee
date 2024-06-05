@@ -10,7 +10,6 @@ namespace CRM.Core.GraphQlTypes.ProductTypes
     {
       descriptor.Ignore(e => e.ProductCategoryId);
       descriptor.Ignore(e => e.ProductCategory);
-      descriptor.Ignore(e => e.AddOns);
     }
   }
 }

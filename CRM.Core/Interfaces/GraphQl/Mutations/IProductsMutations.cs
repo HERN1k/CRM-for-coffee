@@ -20,17 +20,17 @@ namespace CRM.Core.Interfaces.GraphQl.Mutations
         [Service] IProductsService productsService,
         AddOnRequest request
       );
-    Task<IEnumerable<EntityProductCategory>> RemoveProductCategory(
+    Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(
         [Service] IProductsService productsService,
-        string name
+        params string[] names
       );
-    Task<IEnumerable<EntityProduct>> RemoveProduct(
+    Task<IEnumerable<EntityProduct>> RemoveProducts(
         [Service] IProductsService productsService,
-        string name
+        params string[] names
       );
-    Task<IEnumerable<EntityAddOn>> RemoveAddOn(
+    Task<IEnumerable<EntityAddOn>> RemoveAddOns(
         [Service] IProductsService productsService,
-        string name
+        params string[] names
       );
   }
 }

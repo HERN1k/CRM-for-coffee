@@ -11,8 +11,8 @@ namespace CRM.Core.Interfaces.ProductsServices
     Task<EntityProductCategory> SetProductCategory(ProductCategoryRequest request);
     Task<EntityProduct> SetProduct(ProductRequest request);
     Task<EntityAddOn> SetAddOn(AddOnRequest request);
-    Task<IEnumerable<EntityProductCategory>> RemoveProductCategory(string name);
-    Task<IEnumerable<EntityProduct>> RemoveProduct(string name);
-    Task<IEnumerable<EntityAddOn>> RemoveAddOn(string name);
+    Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(params string[] names);
+    Task<IEnumerable<EntityProduct>> RemoveProducts(params string[] names);
+    Task<IEnumerable<EntityAddOn>> RemoveAddOns(params string[] names);
   }
 }

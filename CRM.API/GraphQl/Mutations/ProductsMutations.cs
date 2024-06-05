@@ -26,21 +26,21 @@ namespace CRM.API.GraphQl.Mutations
       ) => await productsService.SetAddOn(request);
 
     [UseProjection]
-    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategory(
+    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(
         [Service] IProductsService productsService,
-        string name
-      ) => await productsService.RemoveProductCategory(name);
+        params string[] names
+      ) => await productsService.RemoveProductCategories(names);
 
     [UseProjection]
-    public async Task<IEnumerable<EntityProduct>> RemoveProduct(
+    public async Task<IEnumerable<EntityProduct>> RemoveProducts(
         [Service] IProductsService productsService,
-        string name
-      ) => await productsService.RemoveProduct(name);
+        params string[] names
+      ) => await productsService.RemoveProducts(names);
 
     [UseProjection]
-    public async Task<IEnumerable<EntityAddOn>> RemoveAddOn(
+    public async Task<IEnumerable<EntityAddOn>> RemoveAddOns(
         [Service] IProductsService productsService,
-        string name
-      ) => await productsService.RemoveAddOn(name);
+        params string[] names
+      ) => await productsService.RemoveAddOns(names);
   }
 }

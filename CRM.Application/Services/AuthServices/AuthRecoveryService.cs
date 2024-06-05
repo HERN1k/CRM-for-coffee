@@ -135,12 +135,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var removeToken = new EntityRefreshToken { Id = _user.Id };
-
-      bool saveToken = await _refreshTokenRepository.AnyAsync(e => e.Id == _user.Id);
-
-      if (saveToken)
-        await _refreshTokenRepository.RemoveAsync(removeToken);
+      await _refreshTokenRepository.RemoveAsync(e => e.Id == _user.Id);
     }
   }
 }

@@ -91,11 +91,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var removeToken = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
-      if (removeToken == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      await _refreshTokenRepository.RemoveAsync(removeToken);
+      await _refreshTokenRepository.RemoveAsync(e => e.Id == _user.Id);
     }
 
     public string GetJwtAccessToken()

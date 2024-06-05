@@ -200,19 +200,22 @@ namespace CRM.API.Helper
     {
       _builder.Services
         .AddGraphQLServer()
+        .AddErrorFilter<GraphQlErrorFilter>()
         .RegisterDbContext<AppDBContext>(DbContextKind.Pooled)
         .AddAuthorization()
-        .AddErrorFilter<GraphQlErrorFilter>()
         .AddProjections()
         .AddFiltering()
         .AddSorting()
+        .AddDefaultTransactionScopeHandler()
+        .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true)
+        // Queries
         .AddQueryType<ProductsQueries>()
+        // Mutations
+        .AddMutationType<ProductsMutations>()
+        // Entity types
         .AddType<ProductCategoryType>()
         .AddType<ProductType>()
-        .AddType<AddOnType>()
-        .AddMutationType<ProductsMutations>()
-        .AddDefaultTransactionScopeHandler()
-        .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true);
+        .AddType<AddOnType>();
     }
     #endregion
 

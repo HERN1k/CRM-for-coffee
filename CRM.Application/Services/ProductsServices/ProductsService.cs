@@ -150,64 +150,94 @@ namespace CRM.Application.Services.ProductsServices
     }
     #endregion
 
-    #region RemoveProductCategory
-    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategory(string name)
+    #region RemoveProductCategories
+    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(params string[] names)
     {
-      bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
-      if (!isValidName)
-        throw new CustomException(ErrorTypes.ValidationError, "Name is incorrect or null");
+      if (names.Length <= 0)
+        throw new CustomException(ErrorTypes.BadRequest, $"Objects not found");
+      if (names.Length > 10)
+        throw new CustomException(ErrorTypes.BadRequest, $"You can delete up to 10 objects at a time");
 
-      var entity = await _productCategoryRepository.FindSingleAsync(e => e.Name == name);
+      foreach (var name in names)
+      {
+        bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
+        if (!isValidName)
+          throw new CustomException(ErrorTypes.ValidationError, $"Name: '{name}' is incorrect or null");
+      }
 
-      if (entity != null)
-        await _productCategoryRepository.RemoveAsync(entity);
+      var removeItems = new List<EntityProductCategory>();
+      foreach (var name in names)
+      {
+        var entity = await _productCategoryRepository.FindSingleAsync(e => e.Name == name);
+        if (entity == null)
+          throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
+        removeItems.Add(entity);
+      }
+
+      await _productCategoryRepository.RemoveManyAsync(removeItems);
 
       return await _productCategoryRepository.GetEnumerable();
     }
     #endregion
 
-    #region RemoveProduct
-    public async Task<IEnumerable<EntityProduct>> RemoveProduct(string name)
+    #region RemoveProducts
+    public async Task<IEnumerable<EntityProduct>> RemoveProducts(params string[] names)
     {
-      bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
-      if (!isValidName)
-        throw new CustomException(ErrorTypes.ValidationError, "Name is incorrect or null");
+      if (names.Length <= 0)
+        throw new CustomException(ErrorTypes.BadRequest, $"Objects not found");
+      if (names.Length > 10)
+        throw new CustomException(ErrorTypes.BadRequest, $"You can delete up to 10 objects at a time");
 
-      var entity = await _productRepository.FindSingleAsync(e => e.Name == name);
+      foreach (var name in names)
+      {
+        bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
+        if (!isValidName)
+          throw new CustomException(ErrorTypes.ValidationError, $"Name: '{name}' is incorrect or null");
+      }
 
-      if (entity != null)
-        await _productRepository.RemoveAsync(entity);
+      var removeItems = new List<EntityProduct>();
+      foreach (var name in names)
+      {
+        var entity = await _productRepository.FindSingleAsync(e => e.Name == name);
+        if (entity == null)
+          throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
+        removeItems.Add(entity);
+      }
+
+      await _productRepository.RemoveManyAsync(removeItems);
 
       return await _productRepository.GetEnumerable();
     }
     #endregion
 
-    #region RemoveAddOn
-    public async Task<IEnumerable<EntityAddOn>> RemoveAddOn(string name)
+    #region RemoveAddOns
+    public async Task<IEnumerable<EntityAddOn>> RemoveAddOns(params string[] names)
     {
-      bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
-      if (!isValidName)
-        throw new CustomException(ErrorTypes.ValidationError, "Name is incorrect or null");
+      if (names.Length <= 0)
+        throw new CustomException(ErrorTypes.BadRequest, $"Objects not found");
+      if (names.Length > 10)
+        throw new CustomException(ErrorTypes.BadRequest, $"You can delete up to 10 objects at a time");
 
-      var entity = await _addOnRepository.FindSingleAsync(e => e.Name == name);
+      foreach (var name in names)
+      {
+        bool isValidName = RegExHelper.ChackString(name, RegExPatterns.ProductName);
+        if (!isValidName)
+          throw new CustomException(ErrorTypes.ValidationError, $"Name: '{name}' is incorrect or null");
+      }
 
-      if (entity != null)
-        await _addOnRepository.RemoveAsync(entity);
+      var removeItems = new List<EntityAddOn>();
+      foreach (var name in names)
+      {
+        var entity = await _addOnRepository.FindSingleAsync(e => e.Name == name);
+        if (entity == null)
+          throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
+        removeItems.Add(entity);
+      }
+
+      await _addOnRepository.RemoveManyAsync(removeItems);
 
       return await _addOnRepository.GetEnumerable();
     }
-    #endregion
-
-    #region RemoveManyProductCategories
-    // !101
-    #endregion
-
-    #region RemoveManyProducts
-    // !101
-    #endregion
-
-    #region RemoveManyAddOns
-    // !101
     #endregion
   }
 }
