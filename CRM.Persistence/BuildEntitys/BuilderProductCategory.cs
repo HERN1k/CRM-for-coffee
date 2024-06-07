@@ -23,6 +23,8 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityProductCategory>()
         .Property(e => e.Image)
         .IsRequired();
+      modelBuilder.Entity<EntityProductCategory>()
+        .Ignore(e => e.Key);
     }
   }
 }

@@ -1,8 +1,9 @@
-﻿namespace CRM.Core.Models
+﻿using CRM.Core.Models.BaseModels;
+
+namespace CRM.Core.Models
 {
-  public class User
+  public class User : BaseModel
   {
-    public Guid Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string FatherName { get; set; } = string.Empty;

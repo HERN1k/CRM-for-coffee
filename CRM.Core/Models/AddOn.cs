@@ -1,10 +1,12 @@
-﻿namespace CRM.Core.Models
+﻿using CRM.Core.Models.BaseModels;
+
+namespace CRM.Core.Models
 {
-  public class AddOn
+  public class AddOn : BaseModel
   {
-    public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int Amount { get; set; }
+    public Guid ProductId { get; set; }
   }
 }

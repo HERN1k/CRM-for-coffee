@@ -8,7 +8,7 @@ namespace CRM.Core.GraphQlTypes.ProductTypes
   {
     protected override void Configure(IObjectTypeDescriptor<EntityProductCategory> descriptor)
     {
-
+      //descriptor.Field(e => e.Id).Type<NonNullType<IdType>>();
     }
   }
 }

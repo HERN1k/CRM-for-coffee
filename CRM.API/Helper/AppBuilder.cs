@@ -174,13 +174,11 @@ namespace CRM.API.Helper
     #region Setting up Db
     public void ConfigureDb()
     {
-      //_builder.Services.AddDbContext<AppDBContext>((options) =>
-      //{
-      //  options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings"));
-      //}, ServiceLifetime.Scoped);
-
       _builder.Services.AddPooledDbContextFactory<AppDBContext>(options =>
-        options.UseNpgsql(_builder.Configuration.GetConnectionString("PostgresConnectionStrings")));
+        options.UseNpgsql(
+          _builder.Configuration.GetConnectionString("PostgresConnectionStrings"),
+          conf => conf.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+        ));
     }
     #endregion
 

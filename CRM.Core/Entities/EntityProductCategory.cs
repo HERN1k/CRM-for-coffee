@@ -6,5 +6,6 @@
     public string Name { get; set; } = string.Empty;
     public string Image { get; set; } = string.Empty;
     public List<EntityProduct>? Products { get; set; }
+    public int Key { get; set; }
   }
 }

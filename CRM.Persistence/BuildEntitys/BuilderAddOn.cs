@@ -21,6 +21,8 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityAddOn>()
         .Property(e => e.ProductId)
         .IsRequired();
+      modelBuilder.Entity<EntityAddOn>()
+        .Ignore(e => e.Key);
     }
   }
 }

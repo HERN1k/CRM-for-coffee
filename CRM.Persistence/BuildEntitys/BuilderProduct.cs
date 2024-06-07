@@ -33,6 +33,8 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityProduct>()
         .Property(e => e.ProductCategoryId)
         .IsRequired();
+      modelBuilder.Entity<EntityProduct>()
+        .Ignore(e => e.Key);
     }
   }
 }
