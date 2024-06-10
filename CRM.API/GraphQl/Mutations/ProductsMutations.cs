@@ -1,11 +1,10 @@
 ﻿using CRM.Application.GraphQl.Dto;
 using CRM.Core.Entities;
-using CRM.Core.Interfaces.GraphQl.Mutations;
 using CRM.Core.Interfaces.ProductsServices;
 
 namespace CRM.API.GraphQl.Mutations
 {
-  public class ProductsMutations : IProductsMutations
+  public partial class Mutations
   {
     [UseProjection]
     public async Task<EntityProductCategory> AddProductCategory(

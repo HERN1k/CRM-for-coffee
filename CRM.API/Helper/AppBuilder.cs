@@ -5,11 +5,13 @@ using CRM.API.GraphQl.Mutations;
 using CRM.API.GraphQl.Queries;
 using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
+using CRM.Application.Services.OrderServices;
 using CRM.Application.Services.ProductsServices;
 using CRM.Core.GraphQlTypes.ProductTypes;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
+using CRM.Core.Interfaces.OrderServices;
 using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.ProductsServices;
 using CRM.Core.Interfaces.Repositories;
@@ -205,12 +207,9 @@ namespace CRM.API.Helper
         .AddFiltering()
         .AddSorting()
         .AddDefaultTransactionScopeHandler()
-        .ModifyRequestOptions(opt => opt.IncludeExceptionDetails = true)
-        // Queries
-        .AddQueryType<ProductsQueries>()
-        // Mutations
-        .AddMutationType<ProductsMutations>()
-        // Entity types
+        .ModifyRequestOptions(options => options.IncludeExceptionDetails = true)
+        .AddQueryType<Queries>()
+        .AddMutationType<Mutations>()
         .AddType<ProductCategoryType>()
         .AddType<ProductType>()
         .AddType<AddOnType>();
@@ -233,6 +232,7 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
 
       _builder.Services.AddScoped<IProductsService, ProductsService>();
+      _builder.Services.AddScoped<IOrderService, OrderService>();
 
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {

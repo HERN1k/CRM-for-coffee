@@ -14,7 +14,7 @@ namespace CRM.Data.BuildEntitys
         .HasForeignKey(e => e.ProductId);
 
       modelBuilder.Entity<EntityProduct>()
-        .HasIndex(e => e.Name)
+        .HasIndex(e => e.Id)
         .IsUnique();
 
       modelBuilder.Entity<EntityProduct>()
@@ -33,8 +33,6 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityProduct>()
         .Property(e => e.ProductCategoryId)
         .IsRequired();
-      modelBuilder.Entity<EntityProduct>()
-        .Ignore(e => e.Key);
     }
   }
 }

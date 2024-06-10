@@ -9,6 +9,10 @@ namespace CRM.Data.BuildEntitys
     public static void Build(ModelBuilder modelBuilder)
     {
       modelBuilder.Entity<EntityAddOn>()
+        .HasIndex(e => e.Id)
+        .IsUnique();
+
+      modelBuilder.Entity<EntityAddOn>()
         .Property(e => e.Name)
         .IsRequired();
       modelBuilder.Entity<EntityAddOn>()
@@ -21,8 +25,6 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityAddOn>()
         .Property(e => e.ProductId)
         .IsRequired();
-      modelBuilder.Entity<EntityAddOn>()
-        .Ignore(e => e.Key);
     }
   }
 }

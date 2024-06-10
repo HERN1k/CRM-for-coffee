@@ -3,6 +3,7 @@ using System;
 using CRM.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CRM.Data.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20240610153251_AddOrder")]
+    partial class AddOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,7 +60,13 @@ namespace CRM.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("OrderСreationDate")
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OrderIssueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OrderReceiptDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("PaymentMethod")
@@ -69,7 +78,10 @@ namespace CRM.Data.Migrations
                     b.Property<decimal>("Total")
                         .HasColumnType("numeric(10, 2)");
 
-                    b.Property<Guid>("WorkerId")
+                    b.Property<Guid>("WorkerChackoutId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkerKitchenId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");

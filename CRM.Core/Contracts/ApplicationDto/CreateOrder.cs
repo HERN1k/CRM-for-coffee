@@ -5,10 +5,10 @@ namespace CRM.Core.Contracts.ApplicationDto
 {
   public class CreateOrder
   {
-    public List<Product> Products { get; set; } = null!;
+    public List<OrderProduct> Products { get; set; } = null!;
+    public decimal Total { get; set; }
     public float TaxPercentage { get; set; }
     public PaymentMethods PaymentMethod { get; set; }
-    public string WorkerChackoutId { get; set; } = string.Empty;
-    public string WorkerKitchenId { get; set; } = string.Empty;
+    public Guid WorkerId { get; set; }
   }
 }

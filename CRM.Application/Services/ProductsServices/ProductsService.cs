@@ -26,42 +26,18 @@ namespace CRM.Application.Services.ProductsServices
     }
 
     #region GetProductCategories
-    public IQueryable<EntityProductCategory> GetProductCategories()
-    {
-      var productCategories = _productCategoryRepository.GetQueryable();
-      int key = 1;
-      foreach (var entity in productCategories)
-      {
-        entity.Key = key++; // убрать
-      }
-      return productCategories;
-    }
+    public IQueryable<EntityProductCategory> GetProductCategories() =>
+      _productCategoryRepository.GetQueryable();
     #endregion
 
     #region GetProducts
-    public IQueryable<EntityProduct> GetProducts()
-    {
-      var products = _productRepository.GetQueryable();
-      int key = 1;
-      foreach (var entity in products)
-      {
-        entity.Key = key++;
-      }
-      return products;
-    }
+    public IQueryable<EntityProduct> GetProducts() =>
+      _productRepository.GetQueryable();
     #endregion
 
     #region GetAddOns
-    public IQueryable<EntityAddOn> GetAddOns()
-    {
-      var addOns = _addOnRepository.GetQueryable();
-      int key = 1;
-      foreach (var entity in addOns)
-      {
-        entity.Key = key++;
-      }
-      return addOns;
-    }
+    public IQueryable<EntityAddOn> GetAddOns() =>
+      _addOnRepository.GetQueryable();
     #endregion
 
     #region SetProductCategory
@@ -149,7 +125,7 @@ namespace CRM.Application.Services.ProductsServices
       if (request.Price < 0)
         throw new CustomException(ErrorTypes.ValidationError, "Price is incorrect or null");
 
-      if (request.Amount < 1)
+      if (request.Amount <= 0 && request.Amount >= 10)
         throw new CustomException(ErrorTypes.ValidationError, "Amount is incorrect or null");
 
       var parent = await _productRepository.FindSingleAsync(e => e.Name == request.ProductName);

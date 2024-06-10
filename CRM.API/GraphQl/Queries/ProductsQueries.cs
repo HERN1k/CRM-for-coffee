@@ -1,11 +1,10 @@
 ﻿using CRM.Core.Entities;
-using CRM.Core.Interfaces.GraphQl.Queries;
 using CRM.Core.Interfaces.ProductsServices;
 
 namespace CRM.API.GraphQl.Queries
 {
   //[Authorize(Policy = "AdminOrLower")]
-  public class ProductsQueries : IProductsQueries
+  public partial class Queries
   {
     [UseProjection]
     [UseSorting()]

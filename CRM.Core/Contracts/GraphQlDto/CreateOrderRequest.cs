@@ -4,7 +4,8 @@ namespace CRM.Core.Contracts.GraphQlDto
 {
   public class CreateOrderRequest
   {
-    public List<Product> Products { get; set; } = null!;
-    public string PaymentMethod { get; set; } = string.Empty;
+    public List<OrderProduct> Products { get; set; } = null!;
+    public int PaymentMethod { get; set; }
+    public string WorkerChackoutEmail { get; set; } = string.Empty;
   }
 }
