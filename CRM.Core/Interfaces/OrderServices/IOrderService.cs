@@ -1,4 +1,5 @@
 ﻿using CRM.Core.Contracts.GraphQlDto;
+using CRM.Core.Entities;
 
 namespace CRM.Core.Interfaces.OrderServices
 {
@@ -7,5 +8,7 @@ namespace CRM.Core.Interfaces.OrderServices
     void ValidateOrderData(CreateOrderRequest request);
     Task CreateOrder(CreateOrderRequest request);
     Task SaveOrder();
+    Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDay();
+    IQueryable<EntityOrder> GetOrders();
   }
 }

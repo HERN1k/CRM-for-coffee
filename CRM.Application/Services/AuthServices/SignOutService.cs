@@ -9,18 +9,15 @@ namespace CRM.Application.Services.AuthServices
 {
   public class SignOutService : ISignOutService
   {
-    private readonly IRepository<EntityUser> _userRepository;
-    private readonly IRepository<EntityRefreshToken> _refreshTokenRepository;
+    private readonly IRepository _repository;
     private readonly ITokenService _tokenService;
 
     public SignOutService(
-        IRepository<EntityUser> userRepository,
-        IRepository<EntityRefreshToken> refreshTokenRepository,
+        IRepository repository,
         ITokenService tokenService
       )
     {
-      _userRepository = userRepository;
-      _refreshTokenRepository = refreshTokenRepository;
+      _repository = repository;
       _tokenService = tokenService;
     }
 
@@ -31,11 +28,11 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task RemoveToken(string email, string refreshToken)
     {
-      var user = await _userRepository.FindSingleAsync(e => e.Email == email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email);
       if (user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      await _refreshTokenRepository.RemoveAsync(e => e.Id == user.Id);
+      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == user.Id);
     }
   }
 }

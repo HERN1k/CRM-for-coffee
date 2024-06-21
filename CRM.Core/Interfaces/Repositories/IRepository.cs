@@ -2,16 +2,16 @@
 
 namespace CRM.Core.Interfaces.Repositories
 {
-  public interface IRepository<T> where T : class
+  public interface IRepository
   {
-    Task<T?> FindSingleAsync(Expression<Func<T, bool>> predicate);
-    Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
-    Task<IEnumerable<T>> FindManyAsync(Expression<Func<T, bool>> predicate);
-    IQueryable<T> GetQueryable();
-    Task<IEnumerable<T>> GetEnumerable();
-    Task AddAsync(T entity);
-    Task UpdateAsync(T entity);
-    Task RemoveAsync(Expression<Func<T, bool>> predicate);
-    Task RemoveManyAsync(List<T> entities);
+    Task<T?> FindSingleAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+    Task<bool> AnyAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+    Task<IEnumerable<T>> FindManyAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+    IQueryable<T> GetQueryable<T>() where T : class;
+    Task<IEnumerable<T>> GetEnumerable<T>() where T : class;
+    Task AddAsync<T>(T entity) where T : class;
+    Task UpdateAsync<T>(T entity) where T : class;
+    Task RemoveAsync<T>(Expression<Func<T, bool>> predicate) where T : class;
+    Task RemoveManyAsync<T>(List<T> entities) where T : class;
   }
 }

@@ -1,37 +1,51 @@
-﻿using CRM.Core.Contracts.ApplicationDto;
+﻿using System.Security.Claims;
+
+using CRM.Application.RegEx;
+using CRM.Core.Contracts.ApplicationDto;
 using CRM.Core.Contracts.GraphQlDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.OrderServices;
 using CRM.Core.Interfaces.Repositories;
+using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.OrderServices
 {
   public class OrderService : IOrderService
   {
     private Order? _order { get; set; }
-    private readonly IRepository<EntityUser> _userRepository;
-    private readonly IRepository<EntityProduct> _productRepository;
-    private readonly IRepository<EntityAddOn> _addOnRepository;
-    private readonly IRepository<EntityOrder> _orderRepository;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly BusinessInformationSettings _businessInfSettings;
+    private readonly IRepository _repository;
 
     public OrderService(
-        IRepository<EntityUser> userRepository,
-        IRepository<EntityProduct> productRepository,
-        IRepository<EntityAddOn> addOnRepository,
-        IRepository<EntityOrder> orderRepository
+        IHttpContextAccessor httpContextAccessor,
+        IOptions<BusinessInformationSettings> businessInfSettings,
+        IRepository repository
       )
     {
-      _userRepository = userRepository;
-      _productRepository = productRepository;
-      _addOnRepository = addOnRepository;
-      _orderRepository = orderRepository;
+      _httpContextAccessor = httpContextAccessor;
+      _businessInfSettings = businessInfSettings.Value;
+      _repository = repository;
     }
 
+    #region CreateOrder
     public void ValidateOrderData(CreateOrderRequest request)
     {
+      bool paymentMethod = Enum.IsDefined(typeof(PaymentMethods), request.PaymentMethod);
+      if (!paymentMethod)
+        throw new CustomException(ErrorTypes.ValidationError, "Payment method is incorrect or null");
+
+      bool workerEmail = RegExHelper.ChackString(request.WorkerEmail, RegExPatterns.Email);
+      if (!workerEmail)
+        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
+
       foreach (var product in request.Products)
       {
         if (product.Amount <= 0)
@@ -47,16 +61,18 @@ namespace CRM.Application.Services.OrderServices
         }
       }
     }
+    #endregion
 
+    #region CreateOrder
     public async Task CreateOrder(CreateOrderRequest request)
     {
       var newOrder = new CreateOrder
       {
-        TaxPercentage = 19.5f, // change!
+        TaxPercentage = _businessInfSettings.Taxes,
         PaymentMethod = (PaymentMethods)request.PaymentMethod
       };
 
-      var workerChackout = await _userRepository.FindSingleAsync(e => e.Email == request.WorkerChackoutEmail);
+      var workerChackout = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.WorkerEmail);
       if (workerChackout == null)
         throw new CustomException(ErrorTypes.BadRequest, "Worker not found");
 
@@ -65,7 +81,7 @@ namespace CRM.Application.Services.OrderServices
       var products = new List<OrderProduct>();
       foreach (var product in request.Products)
       {
-        var entityProduct = await _productRepository.FindSingleAsync(e => e.Id == product.ProductId);
+        var entityProduct = await _repository.FindSingleAsync<EntityProduct>(e => e.Id == product.ProductId);
         if (entityProduct == null)
           throw new CustomException(ErrorTypes.BadRequest, "Product not found");
 
@@ -82,7 +98,7 @@ namespace CRM.Application.Services.OrderServices
         {
           foreach (var addOn in product.AddOns)
           {
-            var entityAddOn = await _addOnRepository.FindSingleAsync(e => e.Id == addOn.AddOnId);
+            var entityAddOn = await _repository.FindSingleAsync<EntityAddOn>(e => e.Id == addOn.AddOnId);
             if (entityAddOn == null)
               throw new CustomException(ErrorTypes.BadRequest, "Addon not found");
 
@@ -103,7 +119,9 @@ namespace CRM.Application.Services.OrderServices
 
       _order = new Order(newOrder);
     }
+    #endregion
 
+    #region SaveOrder
     public async Task SaveOrder()
     {
       if (_order == null)
@@ -144,7 +162,54 @@ namespace CRM.Application.Services.OrderServices
         newOrder.Products.Add(tempProduct);
       }
 
-      await _orderRepository.AddAsync(newOrder);
+      await _repository.AddAsync<EntityOrder>(newOrder);
     }
+    #endregion
+
+    #region GetEmployeeOrdersForDay
+    public async Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDay()
+    {
+      var httpContext = _httpContextAccessor.HttpContext
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      string email = httpContext.User.Claims
+       .FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? string.Empty;
+
+      if (string.IsNullOrEmpty(email))
+        throw new CustomException(ErrorTypes.BadRequest, "Email not found");
+
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      var orders = _repository
+        .GetQueryable<EntityOrder>()
+        .AsNoTracking()
+        .Where(e => e.OrderСreationDate.Date == DateTime.UtcNow.Date)
+        .Where(e => e.WorkerId == user.Id)
+        .Include(e => e.Products.AsQueryable())
+          .ThenInclude(e => e.AddOns)
+        .OrderByDescending(e => e.OrderСreationDate);
+
+      int countOrders = _repository
+        .GetQueryable<EntityOrder>()
+        .AsNoTracking()
+        .Where(e => e.OrderСreationDate.Date == DateTime.UtcNow.Date)
+        .Where(e => e.WorkerId == user.Id)
+        .Count();
+
+      var result = await orders.ToListAsync();
+      for (int i = 0; i < countOrders; i++)
+      {
+        result[i].OrderNumber = countOrders - i;
+      }
+
+      return result;
+    }
+    #endregion
+
+    #region GetOrders
+    public IQueryable<EntityOrder> GetOrders() =>
+      _repository.GetQueryable<EntityOrder>();
+    #endregion  
   }
 }

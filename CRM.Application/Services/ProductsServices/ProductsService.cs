@@ -10,34 +10,28 @@ namespace CRM.Application.Services.ProductsServices
 {
   public class ProductsService : IProductsService
   {
-    private readonly IRepository<EntityProductCategory> _productCategoryRepository;
-    private readonly IRepository<EntityProduct> _productRepository;
-    private readonly IRepository<EntityAddOn> _addOnRepository;
+    private readonly IRepository _repository;
 
     public ProductsService(
-        IRepository<EntityProductCategory> productCategoryRepository,
-        IRepository<EntityProduct> productRepository,
-        IRepository<EntityAddOn> addOnRepository
+        IRepository repository
       )
     {
-      _productCategoryRepository = productCategoryRepository;
-      _productRepository = productRepository;
-      _addOnRepository = addOnRepository;
+      _repository = repository;
     }
 
     #region GetProductCategories
     public IQueryable<EntityProductCategory> GetProductCategories() =>
-      _productCategoryRepository.GetQueryable();
+      _repository.GetQueryable<EntityProductCategory>();
     #endregion
 
     #region GetProducts
     public IQueryable<EntityProduct> GetProducts() =>
-      _productRepository.GetQueryable();
+      _repository.GetQueryable<EntityProduct>();
     #endregion
 
     #region GetAddOns
     public IQueryable<EntityAddOn> GetAddOns() =>
-      _addOnRepository.GetQueryable();
+      _repository.GetQueryable<EntityAddOn>();
     #endregion
 
     #region SetProductCategory
@@ -51,7 +45,7 @@ namespace CRM.Application.Services.ProductsServices
       if (!isValidImage)
         throw new CustomException(ErrorTypes.ValidationError, "Image is incorrect or null");
 
-      bool thisNewItem = await _productCategoryRepository.AnyAsync(e => e.Name == request.Name);
+      bool thisNewItem = await _repository.AnyAsync<EntityProductCategory>(e => e.Name == request.Name);
       if (thisNewItem)
         throw new CustomException(ErrorTypes.BadRequest, "This name is already in use");
 
@@ -61,7 +55,7 @@ namespace CRM.Application.Services.ProductsServices
         Name = request.Name
       };
 
-      await _productCategoryRepository.AddAsync(newProductCategory);
+      await _repository.AddAsync<EntityProductCategory>(newProductCategory);
 
       return newProductCategory;
     }
@@ -88,11 +82,11 @@ namespace CRM.Application.Services.ProductsServices
       if (request.Amount < 1)
         throw new CustomException(ErrorTypes.ValidationError, "Amount is incorrect or null");
 
-      bool thisNewItem = await _productRepository.AnyAsync(e => e.Name == request.Name);
+      bool thisNewItem = await _repository.AnyAsync<EntityProduct>(e => e.Name == request.Name);
       if (thisNewItem)
         throw new CustomException(ErrorTypes.BadRequest, "This name is already in use");
 
-      var parent = await _productCategoryRepository.FindSingleAsync(e => e.Name == request.CategoryName);
+      var parent = await _repository.FindSingleAsync<EntityProductCategory>(e => e.Name == request.CategoryName);
       if (parent == null)
         throw new CustomException(ErrorTypes.BadRequest, "Parent not found");
 
@@ -105,7 +99,7 @@ namespace CRM.Application.Services.ProductsServices
         Amount = request.Amount
       };
 
-      await _productRepository.AddAsync(newProduct);
+      await _repository.AddAsync<EntityProduct>(newProduct);
 
       return newProduct;
     }
@@ -128,7 +122,7 @@ namespace CRM.Application.Services.ProductsServices
       if (request.Amount <= 0 && request.Amount >= 10)
         throw new CustomException(ErrorTypes.ValidationError, "Amount is incorrect or null");
 
-      var parent = await _productRepository.FindSingleAsync(e => e.Name == request.ProductName);
+      var parent = await _repository.FindSingleAsync<EntityProduct>(e => e.Name == request.ProductName);
       if (parent == null)
         throw new CustomException(ErrorTypes.BadRequest, "Parent not found");
 
@@ -140,7 +134,7 @@ namespace CRM.Application.Services.ProductsServices
         Amount = request.Amount
       };
 
-      await _addOnRepository.AddAsync(newAddOn);
+      await _repository.AddAsync<EntityAddOn>(newAddOn);
 
       return newAddOn;
     }
@@ -164,15 +158,15 @@ namespace CRM.Application.Services.ProductsServices
       var removeItems = new List<EntityProductCategory>();
       foreach (var name in names)
       {
-        var entity = await _productCategoryRepository.FindSingleAsync(e => e.Name == name);
+        var entity = await _repository.FindSingleAsync<EntityProductCategory>(e => e.Name == name);
         if (entity == null)
           throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
         removeItems.Add(entity);
       }
 
-      await _productCategoryRepository.RemoveManyAsync(removeItems);
+      await _repository.RemoveManyAsync<EntityProductCategory>(removeItems);
 
-      return await _productCategoryRepository.GetEnumerable();
+      return await _repository.GetEnumerable<EntityProductCategory>();
     }
     #endregion
 
@@ -194,15 +188,15 @@ namespace CRM.Application.Services.ProductsServices
       var removeItems = new List<EntityProduct>();
       foreach (var name in names)
       {
-        var entity = await _productRepository.FindSingleAsync(e => e.Name == name);
+        var entity = await _repository.FindSingleAsync<EntityProduct>(e => e.Name == name);
         if (entity == null)
           throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
         removeItems.Add(entity);
       }
 
-      await _productRepository.RemoveManyAsync(removeItems);
+      await _repository.RemoveManyAsync<EntityProduct>(removeItems);
 
-      return await _productRepository.GetEnumerable();
+      return await _repository.GetEnumerable<EntityProduct>();
     }
     #endregion
 
@@ -224,15 +218,15 @@ namespace CRM.Application.Services.ProductsServices
       var removeItems = new List<EntityAddOn>();
       foreach (var name in names)
       {
-        var entity = await _addOnRepository.FindSingleAsync(e => e.Name == name);
+        var entity = await _repository.FindSingleAsync<EntityAddOn>(e => e.Name == name);
         if (entity == null)
           throw new CustomException(ErrorTypes.BadRequest, $"Object '{name}' not found");
         removeItems.Add(entity);
       }
 
-      await _addOnRepository.RemoveManyAsync(removeItems);
+      await _repository.RemoveManyAsync<EntityAddOn>(removeItems);
 
-      return await _addOnRepository.GetEnumerable();
+      return await _repository.GetEnumerable<EntityAddOn>();
     }
     #endregion
   }

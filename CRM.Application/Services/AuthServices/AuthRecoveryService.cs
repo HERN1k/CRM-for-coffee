@@ -15,21 +15,18 @@ namespace CRM.Application.Services.AuthServices
 {
   public class AuthRecoveryService : IAuthRecoveryService
   {
-    private readonly IRepository<EntityUser> _userRepository;
-    private readonly IRepository<EntityRefreshToken> _refreshTokenRepository;
+    private readonly IRepository _repository;
     private readonly IEmailService _emailService;
     private readonly IHesherService _hashPassword;
     private User? _user { get; set; }
 
     public AuthRecoveryService(
-        IRepository<EntityUser> userRepository,
-        IRepository<EntityRefreshToken> refreshTokenRepository,
+        IRepository repository,
         IEmailService emailService,
         IHesherService hashPassword
       )
     {
-      _userRepository = userRepository;
-      _refreshTokenRepository = refreshTokenRepository;
+      _repository = repository;
       _emailService = emailService;
       _hashPassword = hashPassword;
     }
@@ -48,7 +45,7 @@ namespace CRM.Application.Services.AuthServices
       if (!post)
         throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
 
-      var user = await _userRepository.FindSingleAsync(e => e.Email == request.email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email);
       if (user == null)
         throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
 
@@ -121,13 +118,13 @@ namespace CRM.Application.Services.AuthServices
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hashPassword.GetHash(password, saltArray);
 
-      var user = await _userRepository.FindSingleAsync(e => e.Id == _user.Id);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id);
       if (user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       user.Password = hash;
 
-      await _userRepository.UpdateAsync(user);
+      await _repository.UpdateAsync<EntityUser>(user);
     }
 
     public async Task RemoveRefreshToken()
@@ -135,7 +132,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      await _refreshTokenRepository.RemoveAsync(e => e.Id == _user.Id);
+      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == _user.Id);
     }
   }
 }

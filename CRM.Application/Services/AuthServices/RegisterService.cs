@@ -19,14 +19,14 @@ namespace CRM.Application.Services.AuthServices
   public class RegisterService : IRegisterService
   {
     private readonly HttpSettings _httpSettings;
-    private readonly IRepository<EntityUser> _repository;
+    private readonly IRepository _repository;
     private readonly IHesherService _hashPassword;
     private readonly IEmailService _emailService;
     private User? _user { get; set; }
 
     public RegisterService(
         IOptions<HttpSettings> httpSettings,
-        IRepository<EntityUser> repository,
+        IRepository repository,
         IHesherService hashPassword,
         IEmailService emailService
       )
@@ -101,7 +101,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      bool isRegistered = await _repository.AnyAsync((e) => e.Email == _user.Email);
+      bool isRegistered = await _repository.AnyAsync<EntityUser>((e) => e.Email == _user.Email);
       if (isRegistered)
         throw new CustomException(ErrorTypes.BadRequest, "The user has already been registered");
     }
@@ -134,7 +134,7 @@ namespace CRM.Application.Services.AuthServices
         IsConfirmed = true, // важно удалить!
         RegistrationDate = _user.RegistrationDate
       };
-      await _repository.AddAsync(user);
+      await _repository.AddAsync<EntityUser>(user);
     }
 
     public async Task SendEmailConfirmRegister()
@@ -187,7 +187,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var user = await _repository.FindSingleAsync(e => e.Email == _user.Email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == _user.Email);
       if (user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 

@@ -22,8 +22,7 @@ namespace CRM.Application.Services.AuthServices
   public class AuthSundryService : IAuthSundryService
   {
     private readonly JwtSettings _jwtSettings;
-    private readonly IRepository<EntityUser> _userRepository;
-    private readonly IRepository<EntityRefreshToken> _refreshTokenRepository;
+    private readonly IRepository _repository;
     private readonly ITokenService _tokenService;
     private readonly IHesherService _hesherService;
     private readonly IEmailService _emailService;
@@ -31,16 +30,14 @@ namespace CRM.Application.Services.AuthServices
 
     public AuthSundryService(
         IOptions<JwtSettings> jwtSettings,
-        IRepository<EntityUser> userRepository,
-        IRepository<EntityRefreshToken> refreshTokenRepository,
+        IRepository repository,
         ITokenService tokenService,
         IHesherService hesherService,
         IEmailService emailService
       )
     {
       _jwtSettings = jwtSettings.Value;
-      _userRepository = userRepository;
-      _refreshTokenRepository = refreshTokenRepository;
+      _repository = repository;
       _tokenService = tokenService;
       _hesherService = hesherService;
       _emailService = emailService;
@@ -55,7 +52,7 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task CheckImmutableToken(string email, string refreshToken)
     {
-      var user = await _userRepository.FindSingleAsync(e => e.Email == email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email);
       if (user == null)
         throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
@@ -75,7 +72,7 @@ namespace CRM.Application.Services.AuthServices
         RegistrationDate = user.RegistrationDate
       };
 
-      var token = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+      var token = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id);
       if (token == null)
         throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
@@ -91,7 +88,7 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      await _refreshTokenRepository.RemoveAsync(e => e.Id == _user.Id);
+      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == _user.Id);
     }
 
     public string GetJwtAccessToken()
@@ -129,7 +126,7 @@ namespace CRM.Application.Services.AuthServices
       if (!newPassword)
         throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
 
-      var user = await _userRepository.FindSingleAsync(e => e.Email == request.email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email);
       if (user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
@@ -187,13 +184,13 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var user = await _userRepository.FindSingleAsync(e => e.Id == _user.Id);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id);
       if (user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       user.Password = input;
 
-      await _userRepository.UpdateAsync(user);
+      await _repository.UpdateAsync<EntityUser>(user);
     }
 
     public async Task SendUpdatePasswordEmail()

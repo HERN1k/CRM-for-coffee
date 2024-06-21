@@ -34,6 +34,8 @@ namespace CRM.Data.BuildEntitys
       modelBuilder.Entity<EntityOrder>()
         .Property(e => e.OrderСreationDate)
         .IsRequired();
+      modelBuilder.Entity<EntityOrder>()
+        .Ignore(e => e.OrderNumber);
     }
   }
 }

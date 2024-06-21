@@ -22,31 +22,28 @@ namespace CRM.Application.Services.AuthServices
 {
   public class SignInService : ISignInService
   {
+    private User? _user { get; set; }
     private readonly JwtSettings _jwtSettings;
-    private readonly IRepository<EntityUser> _userRepository;
-    private readonly IRepository<EntityRefreshToken> _refreshTokenRepository;
+    private readonly IRepository _repository;
     private readonly IHesherService _hashPassword;
     private readonly ITokenService _tokenServices;
-    private User? _user { get; set; }
 
     public SignInService(
         IOptions<JwtSettings> jwtSettings,
-        IRepository<EntityUser> userRepository,
-        IRepository<EntityRefreshToken> refreshTokenRepository,
+        IRepository repository,
         IHesherService hashPassword,
         ITokenService tokenServices
       )
     {
       _jwtSettings = jwtSettings.Value;
-      _userRepository = userRepository;
-      _refreshTokenRepository = refreshTokenRepository;
+      _repository = repository;
       _hashPassword = hashPassword;
       _tokenServices = tokenServices;
     }
 
     public async Task SetData(string email)
     {
-      var user = await _userRepository.FindSingleAsync(e => e.Email == email);
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email);
       if (user == null)
         throw new CustomException(ErrorTypes.InvalidOperationException, "The user is not registered");
 
@@ -118,17 +115,17 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      bool tokenSaved = await _refreshTokenRepository.AnyAsync(e => e.Id == _user.Id);
+      bool tokenSaved = await _repository.AnyAsync<EntityRefreshToken>(e => e.Id == _user.Id);
 
       if (tokenSaved)
       {
-        var updateToken = await _refreshTokenRepository.FindSingleAsync(e => e.Id == _user.Id);
+        var updateToken = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id);
         if (updateToken == null)
           throw new CustomException(ErrorTypes.ServerError, "Server error");
 
         updateToken.RefreshTokenString = token;
 
-        await _refreshTokenRepository.UpdateAsync(updateToken);
+        await _repository.UpdateAsync<EntityRefreshToken>(updateToken);
         return;
       }
 
@@ -138,7 +135,7 @@ namespace CRM.Application.Services.AuthServices
         RefreshTokenString = token
       };
 
-      await _refreshTokenRepository.AddAsync(seveToken);
+      await _repository.AddAsync<EntityRefreshToken>(seveToken);
     }
 
     public SignInResponse SetResponse(string refreshToken)

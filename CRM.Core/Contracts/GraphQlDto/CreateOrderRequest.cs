@@ -6,6 +6,6 @@ namespace CRM.Core.Contracts.GraphQlDto
   {
     public List<OrderProduct> Products { get; set; } = null!;
     public int PaymentMethod { get; set; }
-    public string WorkerChackoutEmail { get; set; } = string.Empty;
+    public string WorkerEmail { get; set; } = string.Empty;
   }
 }

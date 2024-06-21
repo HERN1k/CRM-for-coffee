@@ -8,6 +8,6 @@ namespace CRM.Core.Entities
     public int Amount { get; set; }
     public Guid OrderId { get; set; }
     public EntityOrder? Order { get; set; }
-    public List<EntityOrderAddOn>? AddOns { get; set; }
+    public List<EntityOrderAddOn> AddOns { get; set; } = new List<EntityOrderAddOn>();
   }
 }

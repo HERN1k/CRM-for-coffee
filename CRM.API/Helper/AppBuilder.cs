@@ -7,6 +7,7 @@ using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
 using CRM.Application.Services.OrderServices;
 using CRM.Application.Services.ProductsServices;
+using CRM.Core.GraphQlTypes.OrderTypes;
 using CRM.Core.GraphQlTypes.ProductTypes;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
@@ -106,6 +107,9 @@ namespace CRM.API.Helper
       _builder.Services.Configure<EmailConfirmRegisterSettings>(
           _builder.Configuration.GetSection(nameof(EmailConfirmRegisterSettings))
         );
+      _builder.Services.Configure<BusinessInformationSettings>(
+          _builder.Configuration.GetSection(nameof(BusinessInformationSettings))
+        );
     }
     #endregion
 
@@ -198,6 +202,7 @@ namespace CRM.API.Helper
     #region Setting up GraphQL
     public void ConfigureGraphQL()
     {
+      _builder.Services.AddHttpContextAccessor();
       _builder.Services
         .AddGraphQLServer()
         .AddErrorFilter<GraphQlErrorFilter>()
@@ -212,14 +217,17 @@ namespace CRM.API.Helper
         .AddMutationType<Mutations>()
         .AddType<ProductCategoryType>()
         .AddType<ProductType>()
-        .AddType<AddOnType>();
+        .AddType<AddOnType>()
+        .AddType<OrderType>()
+        .AddType<OrderProductType>()
+        .AddType<OrderAddOnType>();
     }
     #endregion
 
     #region Setting up Di
     public void ConfigureDi()
     {
-      _builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+      _builder.Services.AddScoped<IRepository, Repository>();
       _builder.Services.AddScoped<IEmailService, EmailService>();
 
       _builder.Services.AddScoped<IHesherService, HesherService>();

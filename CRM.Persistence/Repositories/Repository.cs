@@ -10,13 +10,13 @@ using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Repositories
 {
-  public class Repository<T> : IAsyncDisposable, IRepository<T> where T : class
+  public class Repository : IAsyncDisposable, IRepository
   {
-    private readonly ILogger<Repository<T>> _logger;
+    private readonly ILogger<Repository> _logger;
     private readonly AppDBContext _сontext;
 
     public Repository(
-        ILogger<Repository<T>> logger,
+        ILogger<Repository> logger,
         IDbContextFactory<AppDBContext> contextFactory
       )
     {
@@ -25,7 +25,9 @@ namespace CRM.Data.Repositories
     }
 
     #region FindSingleAsync
-    public async Task<T?> FindSingleAsync(Expression<Func<T, bool>> predicate)
+    public async Task<T?> FindSingleAsync<T>(
+        Expression<Func<T, bool>> predicate
+      ) where T : class
     {
       try
       {
@@ -55,7 +57,9 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region AnyAsync
-    public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
+    public async Task<bool> AnyAsync<T>(
+        Expression<Func<T, bool>> predicate
+      ) where T : class
     {
       try
       {
@@ -82,7 +86,9 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region FindManyAsync
-    public async Task<IEnumerable<T>> FindManyAsync(Expression<Func<T, bool>> predicate)
+    public async Task<IEnumerable<T>> FindManyAsync<T>(
+        Expression<Func<T, bool>> predicate
+      ) where T : class
     {
       try
       {
@@ -108,14 +114,14 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region GetQueryable
-    public IQueryable<T> GetQueryable()
+    public IQueryable<T> GetQueryable<T>() where T : class
     {
       return _сontext.Set<T>();
     }
     #endregion
 
     #region GetEnumerable
-    public async Task<IEnumerable<T>> GetEnumerable()
+    public async Task<IEnumerable<T>> GetEnumerable<T>() where T : class
     {
       try
       {
@@ -140,7 +146,7 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region AddAsync
-    public async Task AddAsync(T entity)
+    public async Task AddAsync<T>(T entity) where T : class
     {
       try
       {
@@ -186,7 +192,7 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region UpdateAsync
-    public async Task UpdateAsync(T entity)
+    public async Task UpdateAsync<T>(T entity) where T : class
     {
       try
       {
@@ -232,7 +238,7 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region RemoveAsync
-    public async Task RemoveAsync(Expression<Func<T, bool>> predicate)
+    public async Task RemoveAsync<T>(Expression<Func<T, bool>> predicate) where T : class
     {
       try
       {
@@ -273,7 +279,7 @@ namespace CRM.Data.Repositories
     #endregion
 
     #region RemoveManyAsync
-    public async Task RemoveManyAsync(List<T> entities)
+    public async Task RemoveManyAsync<T>(List<T> entities) where T : class
     {
       try
       {
