@@ -45,9 +45,8 @@ namespace CRM.Application.Services.AuthServices
       if (!post)
         throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email);
-      if (user == null)
-        throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email)
+        ?? throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
 
       _user = new User
       {
@@ -114,13 +113,13 @@ namespace CRM.Application.Services.AuthServices
     {
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hashPassword.GetHash(password, saltArray);
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id);
-      if (user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       user.Password = hash;
 

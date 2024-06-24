@@ -28,9 +28,8 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task RemoveToken(string email, string refreshToken)
     {
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email);
-      if (user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == user.Id);
     }

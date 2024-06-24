@@ -1,12 +1,11 @@
-﻿using System.Security.Claims;
-
-using CRM.Core.Contracts.RestDto;
+﻿using CRM.Core.Contracts.RestDto;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Controllers.Auth;
 using CRM.Core.Responses;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using Swashbuckle.AspNetCore.Annotations;
@@ -26,21 +25,6 @@ namespace CRM.API.Controllers.Auth
       _registerService = registerServices;
     }
 
-    [HttpGet("Test")]
-    public IActionResult Test()
-    {
-      if (HttpContext.User.Identity == null)
-        throw new CustomException(ErrorTypes.BadRequest, "Bad request");
-
-      if (!HttpContext.User.Identity.IsAuthenticated)
-        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
-
-      string role = HttpContext.User.Claims
-        .FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value ?? string.Empty;
-
-      return Ok(new { Post = role });
-    }
-
     [SwaggerOperation(
       Summary = "Registers a new user.",
       OperationId = "Register",
@@ -50,11 +34,11 @@ namespace CRM.API.Controllers.Auth
     [SwaggerResponse(400, null, typeof(ExceptionResponse))]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
     [HttpPost("Register")]
-    //[Authorize(Policy = "ManagerOrUpper")]
+    [Authorize(Policy = "ManagerOrUpper")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
-      //if (request.post == "Admin")
-      //  throw new CustomException(ErrorTypes.ValidationError, "You cannot register a user with administrator rights");
+      if (request.post == "Admin")
+        throw new CustomException(ErrorTypes.ValidationError, "You cannot register a user with administrator rights");
 
       _registerService.AddToModel(request);
 
@@ -64,9 +48,11 @@ namespace CRM.API.Controllers.Auth
 
       _registerService.GetHash();
 
-      //await _registerService.SendEmailConfirmRegister();
+      await _registerService.SendEmailConfirmRegister();
 
-      await _registerService.SaveNewUser(); // внутри важно удалить!
+      await _registerService.SaveNewUser();
+
+      // добавить отправку на почту для админов что дабавиль нового менеджера
 
       return Ok();
     }

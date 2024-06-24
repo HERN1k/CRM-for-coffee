@@ -51,7 +51,7 @@ namespace CRM.Application.Services.AuthServices
         Gender = request.gender,
         PhoneNumber = request.phoneNumber,
         IsConfirmed = false,
-        RegistrationDate = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss")
+        RegistrationDate = DateTime.UtcNow
       };
     }
 
@@ -110,7 +110,8 @@ namespace CRM.Application.Services.AuthServices
     {
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hashPassword.GetHash(_user.Password, saltArray);
       _user.Password = hash;
@@ -131,7 +132,7 @@ namespace CRM.Application.Services.AuthServices
         Age = _user.Age,
         Gender = _user.Gender,
         PhoneNumber = _user.PhoneNumber,
-        IsConfirmed = true, // важно удалить!
+        IsConfirmed = _user.IsConfirmed,
         RegistrationDate = _user.RegistrationDate
       };
       await _repository.AddAsync<EntityUser>(user);
@@ -187,9 +188,8 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == _user.Email);
-      if (user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == _user.Email)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       user.IsConfirmed = true;
 

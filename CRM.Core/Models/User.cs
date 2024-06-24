@@ -14,6 +14,6 @@ namespace CRM.Core.Models
     public string Gender { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public bool IsConfirmed { get; set; }
-    public string RegistrationDate { get; set; } = string.Empty;
+    public DateTime RegistrationDate { get; set; }
   }
 }

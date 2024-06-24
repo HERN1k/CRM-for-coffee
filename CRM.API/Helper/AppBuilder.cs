@@ -7,8 +7,10 @@ using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
 using CRM.Application.Services.OrderServices;
 using CRM.Application.Services.ProductsServices;
+using CRM.Application.Services.UserServices;
 using CRM.Core.GraphQlTypes.OrderTypes;
 using CRM.Core.GraphQlTypes.ProductTypes;
+using CRM.Core.GraphQlTypes.UserTypes;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
@@ -17,6 +19,7 @@ using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.ProductsServices;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
+using CRM.Core.Interfaces.UserServices;
 using CRM.Data;
 using CRM.Data.Repositories;
 using CRM.Infrastructure.Email;
@@ -32,9 +35,7 @@ using RazorLight;
 
 namespace CRM.API.Helper
 {
-  public class AppBuilder(
-      WebApplicationBuilder builder
-    )
+  public class AppBuilder(WebApplicationBuilder builder)
   {
     private readonly WebApplicationBuilder _builder = builder;
 
@@ -215,6 +216,7 @@ namespace CRM.API.Helper
         .ModifyRequestOptions(options => options.IncludeExceptionDetails = true)
         .AddQueryType<Queries>()
         .AddMutationType<Mutations>()
+        .AddType<UserType>()
         .AddType<ProductCategoryType>()
         .AddType<ProductType>()
         .AddType<AddOnType>()
@@ -239,6 +241,7 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
 
+      _builder.Services.AddScoped<IUserService, UserService>();
       _builder.Services.AddScoped<IProductsService, ProductsService>();
       _builder.Services.AddScoped<IOrderService, OrderService>();
 

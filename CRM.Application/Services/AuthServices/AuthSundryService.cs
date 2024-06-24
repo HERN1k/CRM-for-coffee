@@ -52,9 +52,8 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task CheckImmutableToken(string email, string refreshToken)
     {
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email);
-      if (user == null)
-        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email)
+        ?? throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
       _user = new User
       {
@@ -72,9 +71,8 @@ namespace CRM.Application.Services.AuthServices
         RegistrationDate = user.RegistrationDate
       };
 
-      var token = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id);
-      if (token == null)
-        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+      var token = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id)
+        ?? throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
       if (token.RefreshTokenString != refreshToken)
         throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
@@ -126,9 +124,8 @@ namespace CRM.Application.Services.AuthServices
       if (!newPassword)
         throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email);
-      if (user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       _user = new User
       {
@@ -151,7 +148,8 @@ namespace CRM.Application.Services.AuthServices
     {
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string hash = _hesherService.GetHash(input, saltArray);
       bool result = hash == _user.Password;
@@ -171,7 +169,8 @@ namespace CRM.Application.Services.AuthServices
     {
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string processedSalt = _user.RegistrationDate.Replace(" ", "").Replace(".", "").Replace(":", "");
+      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
       byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
       string result = _hesherService.GetHash(input, saltArray);
       if (string.IsNullOrEmpty(result))
@@ -184,9 +183,8 @@ namespace CRM.Application.Services.AuthServices
       if (_user == null)
         throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id);
-      if (user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
       user.Password = input;
 
