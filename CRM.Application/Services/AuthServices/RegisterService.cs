@@ -12,31 +12,27 @@ using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
 {
-  public class RegisterService : IRegisterService
+  public class RegisterService(
+      IOptions<HttpSettings> httpSettings,
+      IOptions<EmailConfirmRegisterSettings> emailConfirmRegisterSettings,
+      IRepository repository,
+      IHesherService hashPassword,
+      IEmailService emailService
+    ) : IRegisterService
   {
-    private readonly HttpSettings _httpSettings;
-    private readonly IRepository _repository;
-    private readonly IHesherService _hashPassword;
-    private readonly IEmailService _emailService;
+    private readonly HttpSettings _httpSettings = httpSettings.Value;
+    private readonly EmailConfirmRegisterSettings _emailConfirmRegisterSettings = emailConfirmRegisterSettings.Value;
+    private readonly IRepository _repository = repository;
+    private readonly IHesherService _hashPassword = hashPassword;
+    private readonly IEmailService _emailService = emailService;
     private User? _user { get; set; }
 
-    public RegisterService(
-        IOptions<HttpSettings> httpSettings,
-        IRepository repository,
-        IHesherService hashPassword,
-        IEmailService emailService
-      )
-    {
-      _httpSettings = httpSettings.Value;
-      _repository = repository;
-      _hashPassword = hashPassword;
-      _emailService = emailService;
-    }
-
+    #region AddToModel
     public void AddToModel(RegisterRequest request)
     {
       _user = new User
@@ -54,7 +50,9 @@ namespace CRM.Application.Services.AuthServices
         RegistrationDate = DateTime.UtcNow
       };
     }
+    #endregion
 
+    #region ValidationDataRegister
     public void ValidationDataRegister()
     {
       if (_user == null)
@@ -95,7 +93,9 @@ namespace CRM.Application.Services.AuthServices
       if (!post)
         throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
     }
+    #endregion
 
+    #region UserIsRegister
     public async Task UserIsRegister()
     {
       if (_user == null)
@@ -105,7 +105,9 @@ namespace CRM.Application.Services.AuthServices
       if (isRegistered)
         throw new CustomException(ErrorTypes.BadRequest, "The user has already been registered");
     }
+    #endregion
 
+    #region GetHash
     public void GetHash()
     {
       if (_user == null)
@@ -116,7 +118,9 @@ namespace CRM.Application.Services.AuthServices
       string hash = _hashPassword.GetHash(_user.Password, saltArray);
       _user.Password = hash;
     }
+    #endregion
 
+    #region SaveNewUser
     public async Task SaveNewUser()
     {
       if (_user == null)
@@ -137,34 +141,75 @@ namespace CRM.Application.Services.AuthServices
       };
       await _repository.AddAsync<EntityUser>(user);
     }
+    #endregion
 
+    #region SendEmailConfirmRegister
     public async Task SendEmailConfirmRegister()
     {
-      try
-      {
-        if (_user == null)
-          throw new CustomException(ErrorTypes.ServerError, "Server error");
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-        byte[] bytes = Encoding.UTF8.GetBytes(_user.Email);
-        string code = Convert.ToBase64String(bytes);
-        string url = new StringBuilder()
-          .Append(_httpSettings.Protocol)
-          .Append("://")
-          .Append(_httpSettings.Domaine)
-          .Append("/Api/Auth/ConfirmRegister/")
-          .Append(code)
-          .ToString();
+      byte[] bytes = Encoding.UTF8.GetBytes(_user.Email);
+      string code = Convert.ToBase64String(bytes);
+      string url = new StringBuilder()
+        .Append(_httpSettings.Protocol)
+        .Append("://")
+        .Append(_httpSettings.Domaine)
+        .Append("/Api/Auth/ConfirmRegister/")
+        .Append(code)
+        .ToString();
 
-        await _emailService.SendEmailConfirmRegister(_user.FirstName, _user.Email, code, url);
-      }
-      catch (CustomException ex)
+      string html = await _emailService
+        .CompileHtmlStringAsync("ConfirmRegister", new ConfirmRegister
+        {
+          TitleCode = _emailConfirmRegisterSettings.TitleCode,
+          Code = code,
+          TitleLink = _emailConfirmRegisterSettings.TitleLink,
+          Link = url
+        });
+
+      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
+    }
+    #endregion
+
+    #region SendEmailToAdministrators
+    public async Task SendEmailToAdministrators()
+    {
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      if (_user.Post == "Worker")
+        return;
+
+      var admins = _repository
+        .GetQueryable<EntityUser>()
+        .AsNoTracking()
+        .Where(e => e.Post == "Admin");
+
+      var user = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Email == _user.Email)
+        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      string post = user.Post.ToLower();
+      string name = $"{user.FirstName} {_user.LastName} {_user.FatherName}";
+      string workerId = user.Id.ToString();
+
+      string html = await _emailService
+        .CompileHtmlStringAsync("AddedNewManagerOrAdmin", new AddedNewManagerOrAdmin
+        {
+          Post = post,
+          Name = name,
+          WorkerId = workerId
+        });
+
+      foreach (var admin in admins)
       {
-        if (ex.ErrorType == ErrorTypes.MailKitException)
-          throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
-        throw;
+        await _emailService.SendEmailAsync(admin.FirstName, admin.Email, html);
       }
     }
+    #endregion
 
+    #region FromBase64ToString
     public void FromBase64ToString(string input)
     {
       if (string.IsNullOrEmpty(input))
@@ -173,7 +218,9 @@ namespace CRM.Application.Services.AuthServices
       string result = Encoding.UTF8.GetString(bytes);
       _user = new User { Email = result };
     }
+    #endregion
 
+    #region ValidationEmail
     public void ValidationEmail()
     {
       if (_user == null)
@@ -182,7 +229,9 @@ namespace CRM.Application.Services.AuthServices
       if (!isSuccess)
         throw new CustomException(ErrorTypes.BadRequest, "Code is invalid");
     }
+    #endregion
 
+    #region ConfirmRegister
     public async Task ConfirmRegister()
     {
       if (_user == null)
@@ -195,5 +244,6 @@ namespace CRM.Application.Services.AuthServices
 
       await _repository.UpdateAsync(user);
     }
+    #endregion
   }
 }

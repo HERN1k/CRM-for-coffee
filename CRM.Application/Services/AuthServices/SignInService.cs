@@ -20,26 +20,18 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
 {
-  public class SignInService : ISignInService
+  public class SignInService(
+      IOptions<JwtSettings> jwtSettings,
+      IRepository repository,
+      IHesherService hashPassword,
+      ITokenService tokenServices
+    ) : ISignInService
   {
     private User? _user { get; set; }
-    private readonly JwtSettings _jwtSettings;
-    private readonly IRepository _repository;
-    private readonly IHesherService _hashPassword;
-    private readonly ITokenService _tokenServices;
-
-    public SignInService(
-        IOptions<JwtSettings> jwtSettings,
-        IRepository repository,
-        IHesherService hashPassword,
-        ITokenService tokenServices
-      )
-    {
-      _jwtSettings = jwtSettings.Value;
-      _repository = repository;
-      _hashPassword = hashPassword;
-      _tokenServices = tokenServices;
-    }
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IRepository _repository = repository;
+    private readonly IHesherService _hashPassword = hashPassword;
+    private readonly ITokenService _tokenServices = tokenServices;
 
     public async Task SetData(string email)
     {

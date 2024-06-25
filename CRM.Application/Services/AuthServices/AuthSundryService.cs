@@ -19,29 +19,20 @@ using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
 {
-  public class AuthSundryService : IAuthSundryService
+  public class AuthSundryService(
+      IOptions<JwtSettings> jwtSettings,
+      IRepository repository,
+      ITokenService tokenService,
+      IHesherService hesherService,
+      IEmailService emailService
+    ) : IAuthSundryService
   {
-    private readonly JwtSettings _jwtSettings;
-    private readonly IRepository _repository;
-    private readonly ITokenService _tokenService;
-    private readonly IHesherService _hesherService;
-    private readonly IEmailService _emailService;
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+    private readonly IRepository _repository = repository;
+    private readonly ITokenService _tokenService = tokenService;
+    private readonly IHesherService _hesherService = hesherService;
+    private readonly IEmailService _emailService = emailService;
     private User? _user { get; set; }
-
-    public AuthSundryService(
-        IOptions<JwtSettings> jwtSettings,
-        IRepository repository,
-        ITokenService tokenService,
-        IHesherService hesherService,
-        IEmailService emailService
-      )
-    {
-      _jwtSettings = jwtSettings.Value;
-      _repository = repository;
-      _tokenService = tokenService;
-      _hesherService = hesherService;
-      _emailService = emailService;
-    }
 
     public void ValidationEmail(string email)
     {
@@ -193,18 +184,12 @@ namespace CRM.Application.Services.AuthServices
 
     public async Task SendUpdatePasswordEmail()
     {
-      try
-      {
-        if (_user == null)
-          throw new CustomException(ErrorTypes.ServerError, "Server error");
-        await _emailService.SendEmailUpdatePassword(_user.FirstName, _user.Email);
-      }
-      catch (CustomException ex)
-      {
-        if (ex.ErrorType == ErrorTypes.MailKitException)
-          throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
-        throw;
-      }
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      string html = await _emailService.CompileHtmlStringAsync("UpdatePassword", new { });
+
+      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
     }
   }
 }

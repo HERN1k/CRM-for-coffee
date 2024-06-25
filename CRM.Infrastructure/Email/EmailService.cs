@@ -2,7 +2,6 @@
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.Settings;
-using CRM.Infrastructure.Email.EmailModels;
 
 using MailKit;
 using MailKit.Net.Smtp;
@@ -17,69 +16,82 @@ using RazorLight;
 
 namespace CRM.Infrastructure.Email
 {
-  public class EmailService : IEmailService
+  public class EmailService(
+      ILogger<EmailService> logger,
+      IOptions<EmailSettings> emailSettings,
+      IRazorLightEngine razorEngine
+    ) : IEmailService
   {
-    private readonly ILogger<EmailService> _logger;
-    private readonly EmailSettings _emailSettings;
-    private readonly EmailConfirmRegisterSettings _emailConfirmRegisterSettings;
-    private readonly IRazorLightEngine _razorEngine;
+    private readonly ILogger<EmailService> _logger = logger;
+    private readonly EmailSettings _emailSettings = emailSettings.Value;
+    private readonly IRazorLightEngine _razorEngine = razorEngine;
 
-    public EmailService(
-        ILogger<EmailService> logger,
-        IOptions<EmailSettings> emailSettings,
-        IOptions<EmailConfirmRegisterSettings> emailConfirmRegisterSettings,
-        IRazorLightEngine razorEngine
-      )
+    #region CompileHtmlStringAsync
+    public async Task<string> CompileHtmlStringAsync<T>(string key, T model) where T : class
     {
-      _logger = logger;
-      _emailSettings = emailSettings.Value;
-      _emailConfirmRegisterSettings = emailConfirmRegisterSettings.Value;
-      _razorEngine = razorEngine;
+      return await _razorEngine.CompileRenderAsync(key, model);
     }
+    #endregion
 
-    private MimeMessage CreateMessage(string name, string toEmail, TextPart body)
+    #region SendEmailAsync
+    public async Task SendEmailAsync(string name, string email, string html)
     {
+      var message = CreateMessage(name, email, html);
+      await SendAsync(message);
+    }
+    #endregion
+
+    #region CreateMessage
+    private MimeMessage CreateMessage(string name, string email, string html)
+    {
+      var body = new TextPart(MimeKit.Text.TextFormat.Html)
+      {
+        Text = html
+      };
+
       var message = new MimeMessage();
       message.From.Add(new MailboxAddress(_emailSettings.Title, _emailSettings.Address));
-      message.To.Add(new MailboxAddress(string.Empty, toEmail));
-      message.Subject = $"Hello {name}";
+      message.To.Add(new MailboxAddress(name, email));
+      message.Subject = "Bakery";
       message.Body = body;
       return message;
     }
+    #endregion
 
-    private void SendEmail(MimeMessage message)
+    #region SendAsync
+    private async Task SendAsync(MimeMessage message)
     {
       using var client = new SmtpClient();
       try
       {
         client.Connect(_emailSettings.Server, _emailSettings.Port, SecureSocketOptions.StartTls);
         client.Authenticate(_emailSettings.Address, _emailSettings.Password);
-        client.Send(message);
+        await client.SendAsync(message);
       }
       catch (MessageNotFoundException ex)
       {
         _logger.LogError(ex, "MailKit message not found exception");
-        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, ex.Message);
       }
       catch (ProtocolException ex)
       {
         _logger.LogError(ex, "MailKit protocol exception");
-        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, ex.Message);
       }
       catch (ServiceNotAuthenticatedException ex)
       {
         _logger.LogError(ex, "MailKit service not authenticated exception");
-        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, ex.Message);
       }
       catch (ServiceNotConnectedException ex)
       {
         _logger.LogError(ex, "MailKit service not connected exception");
-        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, ex.Message);
       }
       catch (Exception ex)
       {
         _logger.LogError(ex, "An unexpected MailKit exception");
-        throw new CustomException(ErrorTypes.MailKitException, "MailKit exception", ex);
+        throw new CustomException(ErrorTypes.MailKitException, ex.Message);
       }
       finally
       {
@@ -87,49 +99,6 @@ namespace CRM.Infrastructure.Email
         client.Dispose();
       }
     }
-
-    public async Task SendEmailConfirmRegister(string name, string toEmail, string code, string url)
-    {
-      var model = new ConfirmRegister
-      {
-        TitleCode = _emailConfirmRegisterSettings.TitleCode,
-        Code = code,
-        TitleLink = _emailConfirmRegisterSettings.TitleLink,
-        Link = url
-      };
-      string htmlString = await _razorEngine.CompileRenderAsync("ConfirmRegister", model);
-      var body = new TextPart(MimeKit.Text.TextFormat.Html)
-      {
-        Text = htmlString
-      };
-      var message = CreateMessage(name, toEmail, body);
-      SendEmail(message);
-    }
-
-    public async Task SendEmailUpdatePassword(string name, string toEmail)
-    {
-      string htmlString = await _razorEngine.CompileRenderAsync("UpdatePassword", new { });
-      var body = new TextPart(MimeKit.Text.TextFormat.Html)
-      {
-        Text = htmlString
-      };
-      var message = CreateMessage(name, toEmail, body);
-      SendEmail(message);
-    }
-
-    public async Task SendEmailRecoveryPassword(string name, string toEmail, string password)
-    {
-      var model = new RecoveryPassword
-      {
-        Password = password
-      };
-      string htmlString = await _razorEngine.CompileRenderAsync("RecoveryPassword", model);
-      var body = new TextPart(MimeKit.Text.TextFormat.Html)
-      {
-        Text = htmlString
-      };
-      var message = CreateMessage(name, toEmail, body);
-      SendEmail(message);
-    }
+    #endregion
   }
 }

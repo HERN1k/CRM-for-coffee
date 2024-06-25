@@ -248,12 +248,12 @@ namespace CRM.API.Helper
       _builder.Services.AddSingleton<IRazorLightEngine>((provider) =>
       {
         return new RazorLightEngineBuilder()
-            .UseEmbeddedResourcesProject(
-                typeof(EmailService).Assembly,
-                "CRM.Infrastructure.Email.EmailModels"
-              )
-            .UseMemoryCachingProvider()
-            .Build();
+          .UseEmbeddedResourcesProject(
+              typeof(EmailService).Assembly,
+              "CRM.Infrastructure.Email.EmailModels"
+            )
+          .UseMemoryCachingProvider()
+          .Build();
       });
     }
     #endregion

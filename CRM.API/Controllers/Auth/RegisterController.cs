@@ -14,16 +14,11 @@ namespace CRM.API.Controllers.Auth
 {
   [ApiController]
   [Route("Api/Auth")]
-  public class RegisterController : ControllerBase, IRegisterController
+  public class RegisterController(
+      IRegisterService registerServices
+    ) : ControllerBase, IRegisterController
   {
-    private readonly IRegisterService _registerService;
-
-    public RegisterController(
-        IRegisterService registerServices
-      )
-    {
-      _registerService = registerServices;
-    }
+    private readonly IRegisterService _registerService = registerServices;
 
     [SwaggerOperation(
       Summary = "Registers a new user.",
@@ -52,7 +47,7 @@ namespace CRM.API.Controllers.Auth
 
       await _registerService.SaveNewUser();
 
-      // добавить отправку на почту для админов что дабавиль нового менеджера
+      await _registerService.SendEmailToAdministrators();
 
       return Ok();
     }

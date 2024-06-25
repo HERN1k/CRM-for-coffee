@@ -10,6 +10,7 @@ namespace CRM.Core.Interfaces.AuthServices
     void GetHash();
     Task SaveNewUser();
     Task SendEmailConfirmRegister();
+    Task SendEmailToAdministrators();
     void FromBase64ToString(string input);
     void ValidationEmail();
     Task ConfirmRegister();

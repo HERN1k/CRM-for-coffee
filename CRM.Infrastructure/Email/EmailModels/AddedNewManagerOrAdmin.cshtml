@@ -10,35 +10,33 @@
         margin: 20px;
         padding: 10px;
       }
-      .TitleCode {
+
+      .TitleText {
         font-family: Verdana, Geneva, sans-serif;
         text-align: center;
         padding: 10px 10px 0px 10px;
       }
-      .Code {
+
+      .Text1 {
         font-family: Verdana, Geneva, sans-serif;
         text-align: center;
-        color: blueviolet;
-        padding: 0px 10px 20px 10px;
+        padding: 0px 10px 5px 10px;
+        color: darkviolet;
       }
-      .TitleLink {
+
+      .Text2 {
         font-family: Verdana, Geneva, sans-serif;
         text-align: center;
-      }
-      .Link {
-        font-family: Verdana, Geneva, sans-serif;
-        text-align: center;
-        color: blueviolet;
         padding: 0px 10px 20px 10px;
+        color: darkviolet;
       }
     </style>
   </head>
   <body>
     <div class="MainDiv">
-      <h1 class="TitleCode">@Model.TitleCode</h1>
-      <h2 class="Code">@Model.Code</h2>
-      <h2 class="TitleLink">@Model.TitleLink</h2>
-	    <a href="@Model.Link" class="Link">Confirm identity</a>
+      <h1 class="TitleText">A new @Model.Post was added to the database.</h1>
+      <h2 class="Text1">Name: @Model.Name</h2>
+      <h2 class="Text2">WorkerId: @Model.WorkerId</h2>
     </div>
   </body>
 </html>

@@ -13,23 +13,16 @@ using CRM.Core.Models;
 
 namespace CRM.Application.Services.AuthServices
 {
-  public class AuthRecoveryService : IAuthRecoveryService
+  public class AuthRecoveryService(
+      IRepository repository,
+      IEmailService emailService,
+      IHesherService hashPassword
+    ) : IAuthRecoveryService
   {
-    private readonly IRepository _repository;
-    private readonly IEmailService _emailService;
-    private readonly IHesherService _hashPassword;
+    private readonly IRepository _repository = repository;
+    private readonly IEmailService _emailService = emailService;
+    private readonly IHesherService _hashPassword = hashPassword;
     private User? _user { get; set; }
-
-    public AuthRecoveryService(
-        IRepository repository,
-        IEmailService emailService,
-        IHesherService hashPassword
-      )
-    {
-      _repository = repository;
-      _emailService = emailService;
-      _hashPassword = hashPassword;
-    }
 
     public async Task ValidationDataRecoveryPass(RecoveryPasswordRequest request)
     {
@@ -93,20 +86,18 @@ namespace CRM.Application.Services.AuthServices
 
       return newPassword;
     }
+
     public async Task SendRecoveryPassEmail(string password)
     {
-      try
+      if (_user == null)
+        throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      string html = await _emailService.CompileHtmlStringAsync("RecoveryPassword", new RecoveryPassword
       {
-        if (_user == null)
-          throw new CustomException(ErrorTypes.ServerError, "Server error");
-        await _emailService.SendEmailRecoveryPassword(_user.FirstName, _user.Email, password);
-      }
-      catch (CustomException ex)
-      {
-        if (ex.ErrorType == ErrorTypes.MailKitException)
-          throw new CustomException(ErrorTypes.MailKitException, "The email was not sent");
-        throw;
-      }
+        Password = password
+      });
+
+      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
     }
 
     public async Task SaveNewPassword(string password)

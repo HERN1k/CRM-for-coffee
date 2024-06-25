@@ -7,19 +7,13 @@ using CRM.Core.Interfaces.Repositories;
 
 namespace CRM.Application.Services.AuthServices
 {
-  public class SignOutService : ISignOutService
+  public class SignOutService(
+      IRepository repository,
+      ITokenService tokenService
+    ) : ISignOutService
   {
-    private readonly IRepository _repository;
-    private readonly ITokenService _tokenService;
-
-    public SignOutService(
-        IRepository repository,
-        ITokenService tokenService
-      )
-    {
-      _repository = repository;
-      _tokenService = tokenService;
-    }
+    private readonly IRepository _repository = repository;
+    private readonly ITokenService _tokenService = tokenService;
 
     public string TokenDecryption(string token)
     {
