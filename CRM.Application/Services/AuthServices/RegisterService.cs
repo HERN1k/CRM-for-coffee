@@ -1,17 +1,19 @@
 ﻿using System.Text;
 
-using CRM.Application.RegEx;
+using CRM.Application.RequestDataMapper;
+using CRM.Application.RequestValidation;
+using CRM.Application.Security;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
-using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -21,229 +23,90 @@ namespace CRM.Application.Services.AuthServices
       IOptions<HttpSettings> httpSettings,
       IOptions<EmailConfirmRegisterSettings> emailConfirmRegisterSettings,
       IRepository repository,
-      IHesherService hashPassword,
-      IEmailService emailService
+      IEmailSender emailSender
     ) : IRegisterService
   {
     private readonly HttpSettings _httpSettings = httpSettings.Value;
     private readonly EmailConfirmRegisterSettings _emailConfirmRegisterSettings = emailConfirmRegisterSettings.Value;
     private readonly IRepository _repository = repository;
-    private readonly IHesherService _hashPassword = hashPassword;
-    private readonly IEmailService _emailService = emailService;
-    private User? _user { get; set; }
+    private readonly IEmailSender _emailSender = emailSender;
 
-    #region AddToModel
-    public void AddToModel(RegisterRequest request)
+    public async Task<IActionResult> RegisterNewWorkerAsync(RegisterRequest request)
     {
-      _user = new User
-      {
-        FirstName = request.firstName,
-        LastName = request.lastName,
-        FatherName = request.fatherName,
-        Email = request.email,
-        Password = request.password,
-        Post = request.post,
-        Age = request.age,
-        Gender = request.gender,
-        PhoneNumber = request.phoneNumber,
-        IsConfirmed = false,
-        RegistrationDate = DateTime.UtcNow
-      };
+      if (request.Post == "Admin")
+        throw new CustomException(ErrorTypes.ValidationError, "You cannot register a user with administrator rights");
+
+      User user = RequestMapper.MapToModel(request);
+
+      await RegistrationСheck(user);
+
+      user.Password = HesherService.GetPasswordHash(user);
+
+      await _emailSender.SendEmailConfirmRegisterAsync(user, _httpSettings, _emailConfirmRegisterSettings);
+
+      var newUser = await SaveNewWorker(user);
+
+      await _emailSender.NotifyAdminsOnManagerRegistration(newUser, GetAdminList());
+
+      return new OkResult();
     }
-    #endregion
 
-    #region ValidationDataRegister
-    public void ValidationDataRegister()
+    public async Task<IActionResult> ConfirmRegisterAsync(string code)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      User user = new User { Email = GetStringFromBase64(code) };
 
-      bool firstName = RegExHelper.ChackString(_user.FirstName, RegExPatterns.FirstName);
-      if (!firstName)
-        throw new CustomException(ErrorTypes.ValidationError, "First name is incorrect or null");
+      RequestValidator.ValidateEmail(user.Email);
 
-      bool lastName = RegExHelper.ChackString(_user.LastName, RegExPatterns.LastName);
-      if (!lastName)
-        throw new CustomException(ErrorTypes.ValidationError, "Last name is incorrect or null");
+      await SetTrueIsConfirmed(user);
 
-      bool fatherName = RegExHelper.ChackString(_user.FatherName, RegExPatterns.FatherName);
-      if (!fatherName)
-        throw new CustomException(ErrorTypes.ValidationError, "Father name is incorrect or null");
-
-      bool password = RegExHelper.ChackString(_user.Password, RegExPatterns.Password);
-      if (!password)
-        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
-
-      if (_user.Age < 16 || _user.Age > 65)
-        throw new CustomException(ErrorTypes.ValidationError, "Age is incorrect or null");
-
-      bool gender = RegExHelper.ChackString(_user.Gender, RegExPatterns.Gender);
-      if (!gender)
-        throw new CustomException(ErrorTypes.ValidationError, "Gender is incorrect or null");
-
-      bool phoneNumber = RegExHelper.ChackString(_user.PhoneNumber, RegExPatterns.PhoneNumber);
-      if (!phoneNumber)
-        throw new CustomException(ErrorTypes.ValidationError, "Phone number is incorrect or null");
-
-      bool email = RegExHelper.ChackString(_user.Email, RegExPatterns.Email);
-      if (!email)
-        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
-
-      bool post = RegExHelper.ChackString(_user.Post, RegExPatterns.Post);
-      if (!post)
-        throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
+      return new OkResult();
     }
-    #endregion
 
-    #region UserIsRegister
-    public async Task UserIsRegister()
+    private async Task RegistrationСheck(User user)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      bool isRegistered = await _repository.AnyAsync<EntityUser>((e) => e.Email == _user.Email);
+      bool isRegistered = await _repository
+        .AnyAsync<EntityUser>((e) => e.Email == user.Email);
       if (isRegistered)
         throw new CustomException(ErrorTypes.BadRequest, "The user has already been registered");
     }
-    #endregion
-
-    #region GetHash
-    public void GetHash()
+    private async Task<EntityUser> SaveNewWorker(User user)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
-      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
-      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      string hash = _hashPassword.GetHash(_user.Password, saltArray);
-      _user.Password = hash;
-    }
-    #endregion
-
-    #region SaveNewUser
-    public async Task SaveNewUser()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      var user = new EntityUser
+      var newUser = new EntityUser
       {
-        FirstName = _user.FirstName,
-        LastName = _user.LastName,
-        FatherName = _user.FatherName,
-        Email = _user.Email,
-        Password = _user.Password,
-        Post = _user.Post,
-        Age = _user.Age,
-        Gender = _user.Gender,
-        PhoneNumber = _user.PhoneNumber,
-        IsConfirmed = _user.IsConfirmed,
-        RegistrationDate = _user.RegistrationDate
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        FatherName = user.FatherName,
+        Email = user.Email,
+        Password = user.Password,
+        Post = user.Post,
+        Age = user.Age,
+        Gender = user.Gender,
+        PhoneNumber = user.PhoneNumber,
+        IsConfirmed = user.IsConfirmed,
+        RegistrationDate = user.RegistrationDate
       };
-      await _repository.AddAsync<EntityUser>(user);
+      await _repository.AddAsync<EntityUser>(newUser);
+      return newUser;
     }
-    #endregion
-
-    #region SendEmailConfirmRegister
-    public async Task SendEmailConfirmRegister()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      byte[] bytes = Encoding.UTF8.GetBytes(_user.Email);
-      string code = Convert.ToBase64String(bytes);
-      string url = new StringBuilder()
-        .Append(_httpSettings.Protocol)
-        .Append("://")
-        .Append(_httpSettings.Domaine)
-        .Append("/Api/Auth/ConfirmRegister/")
-        .Append(code)
-        .ToString();
-
-      string html = await _emailService
-        .CompileHtmlStringAsync("ConfirmRegister", new ConfirmRegister
-        {
-          TitleCode = _emailConfirmRegisterSettings.TitleCode,
-          Code = code,
-          TitleLink = _emailConfirmRegisterSettings.TitleLink,
-          Link = url
-        });
-
-      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
-    }
-    #endregion
-
-    #region SendEmailToAdministrators
-    public async Task SendEmailToAdministrators()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      if (_user.Post == "Worker")
-        return;
-
-      var admins = _repository
+    private List<EntityUser> GetAdminList() =>
+      [.. _repository
         .GetQueryable<EntityUser>()
         .AsNoTracking()
-        .Where(e => e.Post == "Admin");
-
-      var user = await _repository
-        .FindSingleAsync<EntityUser>(e => e.Email == _user.Email)
-        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      string post = user.Post.ToLower();
-      string name = $"{user.FirstName} {_user.LastName} {_user.FatherName}";
-      string workerId = user.Id.ToString();
-
-      string html = await _emailService
-        .CompileHtmlStringAsync("AddedNewManagerOrAdmin", new AddedNewManagerOrAdmin
-        {
-          Post = post,
-          Name = name,
-          WorkerId = workerId
-        });
-
-      foreach (var admin in admins)
-      {
-        await _emailService.SendEmailAsync(admin.FirstName, admin.Email, html);
-      }
-    }
-    #endregion
-
-    #region FromBase64ToString
-    public void FromBase64ToString(string input)
+        .Where(e => e.Post == "Admin")];
+    private string GetStringFromBase64(string code)
     {
-      if (string.IsNullOrEmpty(input))
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      byte[] bytes = Convert.FromBase64String(input);
-      string result = Encoding.UTF8.GetString(bytes);
-      _user = new User { Email = result };
+      byte[] bytes = Convert.FromBase64String(code);
+      return Encoding.UTF8.GetString(bytes);
     }
-    #endregion
-
-    #region ValidationEmail
-    public void ValidationEmail()
+    private async Task SetTrueIsConfirmed(User user)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      bool isSuccess = RegExHelper.ChackString(_user.Email, RegExPatterns.Email);
-      if (!isSuccess)
-        throw new CustomException(ErrorTypes.BadRequest, "Code is invalid");
+      var entityUser = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Email == user.Email)
+          ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      entityUser.IsConfirmed = true;
+
+      await _repository.UpdateAsync(entityUser);
     }
-    #endregion
-
-    #region ConfirmRegister
-    public async Task ConfirmRegister()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == _user.Email)
-        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      user.IsConfirmed = true;
-
-      await _repository.UpdateAsync(user);
-    }
-    #endregion
   }
 }

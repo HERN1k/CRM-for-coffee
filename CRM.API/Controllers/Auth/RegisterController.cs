@@ -1,6 +1,4 @@
 ﻿using CRM.Core.Contracts.RestDto;
-using CRM.Core.Enums;
-using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Controllers.Auth;
 using CRM.Core.Responses;
@@ -30,27 +28,8 @@ namespace CRM.API.Controllers.Auth
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
     [HttpPost("Register")]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<IActionResult> Register(RegisterRequest request)
-    {
-      if (request.post == "Admin")
-        throw new CustomException(ErrorTypes.ValidationError, "You cannot register a user with administrator rights");
-
-      _registerService.AddToModel(request);
-
-      _registerService.ValidationDataRegister();
-
-      await _registerService.UserIsRegister();
-
-      _registerService.GetHash();
-
-      await _registerService.SendEmailConfirmRegister();
-
-      await _registerService.SaveNewUser();
-
-      await _registerService.SendEmailToAdministrators();
-
-      return Ok();
-    }
+    public async Task<IActionResult> Register(RegisterRequest request) =>
+      await _registerService.RegisterNewWorkerAsync(request);
 
     [SwaggerOperation(
       Summary = "Confirmation of registration.",
@@ -61,15 +40,7 @@ namespace CRM.API.Controllers.Auth
     [SwaggerResponse(400, null, typeof(ExceptionResponse))]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
     [HttpGet("ConfirmRegister/{code}")]
-    public async Task<IActionResult> ConfirmRegister(string code)
-    {
-      _registerService.FromBase64ToString(code);
-
-      _registerService.ValidationEmail();
-
-      await _registerService.ConfirmRegister();
-
-      return Ok();
-    }
+    public async Task<IActionResult> ConfirmRegister(string code) =>
+      await _registerService.ConfirmRegisterAsync(code);
   }
 }

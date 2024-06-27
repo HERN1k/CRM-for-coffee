@@ -3,22 +3,46 @@ using System.Text;
 
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
-using CRM.Core.Interfaces.PasswordHesher;
+using CRM.Core.Models;
 
 namespace CRM.Application.Security
 {
-  public class HesherService : IHesherService
+  /// <summary>
+  ///   Provides methods for hashing and verifying passwords
+  /// </summary>
+  public static class HesherService
   {
-    public string GetHash(string password, byte[] salt)
+    /// <summary>
+    ///   Hashes a password using SHA256
+    /// </summary>
+    /// <returns>The hashed password</returns>
+    public static string GetPasswordHash(User user)
     {
-      var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 1000, HashAlgorithmName.SHA256);
-      byte[] hashArray = pbkdf2.GetBytes(20);
-      string result = Convert.ToBase64String(hashArray);
-      pbkdf2.Dispose();
-      return result;
+      string date = user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
+      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
+      return GetHash(user.Password, saltArray);
     }
 
-    public string GetRandomPassword(int length)
+    /// <summary>
+    ///   Hashes a password using SHA256
+    /// </summary>
+    /// <returns>The hashed password</returns>
+    public static string GetPasswordHash(User user, string password)
+    {
+      string date = user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
+      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
+      return GetHash(password, saltArray);
+    }
+
+    /// <summary>
+    ///   Generates a random password of the specified length
+    /// </summary>
+    /// <param name="length">The length of the password to be generated</param>
+    /// <returns>A random password as a string</returns>
+    /// <exception cref="CustomException"></exception>
+    public static string GetRandomPassword(int length)
     {
       if (length < 8)
         throw new CustomException(ErrorTypes.InvalidOperationException, "The minimum line length must be 8 characters");
@@ -60,7 +84,50 @@ namespace CRM.Application.Security
       return stringBuilder.ToString();
     }
 
-    public int GetRandomNumber(int min, int max)
+    /// <summary>
+    ///   Checks if the provided password matches the stored password for the given user
+    /// </summary>
+    /// <param name="user">The user whose password needs to be checked</param>
+    /// <param name="requestPassword">The password provided in the request</param>
+    /// <returns>True if the provided password matches the stored password, otherwise false</returns>
+    public static bool PasswordСheck(User user, string requestPassword)
+    {
+      string date = user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
+      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
+      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
+      string hash = GetHash(requestPassword, saltArray);
+      return hash == user.Password;
+    }
+
+    /// <summary>
+    ///   Generates a hash for the given password using the specified salt
+    /// </summary>
+    /// <param name="password">The password to be hashed</param>
+    /// <param name="salt">The salt to be used in the hashing process</param>
+    /// <returns>The hashed password as a Base64-encoded string</returns>
+    /// <remarks>
+    ///   This method uses the PBKDF2 (Password-Based Key Derivation Function 2) algorithm with SHA256 to generate the hash.
+    ///   The number of iterations is set to 1000.
+    /// </remarks>
+    private static string GetHash(string password, byte[] salt)
+    {
+      var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 1000, HashAlgorithmName.SHA256);
+      byte[] hashArray = pbkdf2.GetBytes(20);
+      string result = Convert.ToBase64String(hashArray);
+      pbkdf2.Dispose();
+      return result;
+    }
+
+    /// <summary>
+    ///   Generates a cryptographically secure random number within a specified range
+    /// </summary>
+    /// <param name="min">The inclusive lower bound of the random number returned</param>
+    /// <param name="max">The exclusive upper bound of the random number returned. Must be greater than min</param>
+    /// <returns>
+    ///   A cryptographically secure random number within the specified range. 
+    ///   Returns 0 if the min value is greater than or equal to the max value.
+    /// </returns>
+    private static int GetRandomNumber(int min, int max)
     {
       if (min >= max)
         return 0;

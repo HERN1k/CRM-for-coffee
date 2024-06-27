@@ -26,22 +26,31 @@ namespace CRM.Infrastructure.Email
     private readonly EmailSettings _emailSettings = emailSettings.Value;
     private readonly IRazorLightEngine _razorEngine = razorEngine;
 
-    #region CompileHtmlStringAsync
+    /// <summary>
+    ///   Compiles and renders an HTML string using the specified template key and model
+    /// </summary>
+    /// <typeparam name="T">The type of the model</typeparam>
+    /// <param name="key">The key identifying the template to be used for rendering</param>
+    /// <param name="model">The model to be passed to the template</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the rendered HTML string.</returns>
     public async Task<string> CompileHtmlStringAsync<T>(string key, T model) where T : class
     {
       return await _razorEngine.CompileRenderAsync(key, model);
     }
-    #endregion
 
-    #region SendEmailAsync
+    /// <summary>
+    ///   Sends an email asynchronously with the specified recipient's name, email address, and HTML content
+    /// </summary>
+    /// <param name="name">The recipient's name</param>
+    /// <param name="email">The recipient's email address</param>
+    /// <param name="html">The HTML content of the email</param>
+    /// <returns>A task that represents the asynchronous operation</returns>
     public async Task SendEmailAsync(string name, string email, string html)
     {
       var message = CreateMessage(name, email, html);
       await SendAsync(message);
     }
-    #endregion
 
-    #region CreateMessage
     private MimeMessage CreateMessage(string name, string email, string html)
     {
       var body = new TextPart(MimeKit.Text.TextFormat.Html)
@@ -56,9 +65,6 @@ namespace CRM.Infrastructure.Email
       message.Body = body;
       return message;
     }
-    #endregion
-
-    #region SendAsync
     private async Task SendAsync(MimeMessage message)
     {
       using var client = new SmtpClient();
@@ -99,6 +105,5 @@ namespace CRM.Infrastructure.Email
         client.Dispose();
       }
     }
-    #endregion
   }
 }

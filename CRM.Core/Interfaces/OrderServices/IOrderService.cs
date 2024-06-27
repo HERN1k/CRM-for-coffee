@@ -1,14 +1,13 @@
 ﻿using CRM.Core.Contracts.GraphQlDto;
 using CRM.Core.Entities;
+using CRM.Core.Responses;
 
 namespace CRM.Core.Interfaces.OrderServices
 {
   public interface IOrderService
   {
-    void ValidateOrderData(CreateOrderRequest request);
-    Task CreateOrder(CreateOrderRequest request);
-    Task SaveOrder();
-    Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDay();
-    IQueryable<EntityOrder> GetOrders();
+    Task<OperationResult> AddOrderAsync(CreateOrderRequest input);
+    Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDayAsync();
+    IQueryable<EntityOrder> GetOrdersAsync();
   }
 }

@@ -1,6 +1,4 @@
-﻿using CRM.Core.Enums;
-using CRM.Core.Exceptions;
-using CRM.Core.Interfaces.AuthServices;
+﻿using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Controllers.Auth;
 using CRM.Core.Responses;
 
@@ -13,16 +11,11 @@ namespace CRM.API.Controllers.Auth
 {
   [ApiController]
   [Route("Api/Auth")]
-  public class SignOutController : ControllerBase, ISignOutController
+  public class SignOutController(
+      ISignOutService signOutService
+    ) : ControllerBase, ISignOutController
   {
-    private readonly ISignOutService _signOutService;
-
-    public SignOutController(
-        ISignOutService signOutService
-      )
-    {
-      _signOutService = signOutService;
-    }
+    private readonly ISignOutService _signOutService = signOutService;
 
     [SwaggerOperation(
       Summary = "Logs the user out.",
@@ -34,20 +27,7 @@ namespace CRM.API.Controllers.Auth
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
     [HttpPost("SignOut")]
     [Authorize]
-    public async Task<IActionResult> Logout()
-    {
-      string? token = HttpContext.Request.Cookies["accessToken"];
-      if (string.IsNullOrEmpty(token))
-        throw new CustomException(ErrorTypes.BadRequest, "Token not found");
-
-      string email = _signOutService.TokenDecryption(token);
-
-      await _signOutService.RemoveToken(email, token);
-
-      HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-      HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-
-      return Ok();
-    }
+    public async Task<IActionResult> Logout() =>
+      await _signOutService.LogoutAsync(HttpContext);
   }
 }

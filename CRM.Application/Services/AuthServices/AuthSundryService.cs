@@ -1,7 +1,6 @@
-﻿using System.Security.Claims;
-using System.Text;
-
-using CRM.Application.RegEx;
+﻿using CRM.Application.RequestDataMapper;
+using CRM.Application.RequestValidation;
+using CRM.Application.Security;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
@@ -9,12 +8,12 @@ using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
-using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
@@ -23,173 +22,152 @@ namespace CRM.Application.Services.AuthServices
       IOptions<JwtSettings> jwtSettings,
       IRepository repository,
       ITokenService tokenService,
-      IHesherService hesherService,
-      IEmailService emailService
+      IEmailSender emailSender
     ) : IAuthSundryService
   {
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IRepository _repository = repository;
     private readonly ITokenService _tokenService = tokenService;
-    private readonly IHesherService _hesherService = hesherService;
-    private readonly IEmailService _emailService = emailService;
-    private User? _user { get; set; }
+    private readonly IEmailSender _emailSender = emailSender;
 
-    public void ValidationEmail(string email)
+    public async Task<IActionResult> ChangeTokenAsync(HttpContext httpContext, ChangeTokenRequest request)
     {
-      bool result = RegExHelper.ChackString(email, RegExPatterns.Email);
-      if (!result)
-        throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+      try
+      {
+        string token = GetRefreshToken(httpContext);
+
+        RequestValidator.ValidateEmail(request.Email);
+
+        await _tokenService.ValidateToken(token);
+
+        EntityUser entityUser = await FindUserFromDB(request.Email, ErrorTypes.Unauthorized, "Unauthorized");
+
+        User user = RequestMapper.MapToModel(entityUser);
+
+        await CheckImmutableToken(user, token);
+
+        string accessToken = _tokenService.GetJwtToken(user, TokenTypes.Access);
+
+        SetAccessTokenCookie(httpContext, accessToken);
+
+        return new OkResult();
+      }
+      catch (CustomException ex)
+      {
+        SetUnauthorizedCookies(httpContext);
+        throw new CustomException(ErrorTypes.Unauthorized, ex.Message);
+      }
+      catch (Exception ex)
+      {
+        SetUnauthorizedCookies(httpContext);
+        throw new CustomException(ErrorTypes.Unauthorized, ex.Message);
+      }
+    }
+    public async Task<IActionResult> UpdatePasswordAsync(HttpContext httpContext, UpdatePasswordRequest request)
+    {
+      RequestValidator.Validate(request);
+
+      EntityUser entityUser = await FindUserFromDB(request.Email, ErrorTypes.ServerError, "Server error");
+
+      User user = RequestMapper.MapToModel(entityUser);
+
+      CheckPasswordDifference(request);
+
+      PasswordСheck(user, request.Password);
+
+      string hash = HesherService.GetPasswordHash(user, request.Password);
+
+      await SaveNewPassword(user, hash);
+
+      await RemoveRefreshToken(user);
+
+      await _emailSender.SendUpdatePasswordEmail(user);
+
+      SetUnauthorizedCookies(httpContext);
+
+      return new OkResult();
     }
 
-    public async Task CheckImmutableToken(string email, string refreshToken)
+    private string GetRefreshToken(HttpContext httpContext)
     {
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email)
-        ?? throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
-
-      _user = new User
-      {
-        Id = user.Id,
-        FirstName = user.FirstName,
-        Email = user.Email,
-        Post = user.Post,
-        Age = user.Age,
-        FatherName = user.FatherName,
-        Gender = user.Gender,
-        IsConfirmed = user.IsConfirmed,
-        LastName = user.LastName,
-        Password = user.Password,
-        PhoneNumber = user.PhoneNumber,
-        RegistrationDate = user.RegistrationDate
-      };
-
-      var token = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id)
-        ?? throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
+      string? token = httpContext.Request.Cookies["refreshToken"];
+      if (string.IsNullOrEmpty(token))
+        throw new CustomException(ErrorTypes.BadRequest, "Token not found");
+      return token;
+    }
+    private async Task<EntityUser> FindUserFromDB(string email, ErrorTypes type, string errorMassage)
+    {
+      var result = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Email == email)
+          ?? throw new CustomException(type, errorMassage);
+      return result;
+    }
+    private async Task CheckImmutableToken(User user, string refreshToken)
+    {
+      var token = await _repository
+        .FindSingleAsync<EntityRefreshToken>(e => e.Id == user.Id)
+          ?? throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
 
       if (token.RefreshTokenString != refreshToken)
         throw new CustomException(ErrorTypes.Unauthorized, "Unauthorized");
     }
-
-    public async Task ValidateToken(string token) =>
-      await _tokenService.ValidateToken(token);
-
-    public async Task RemoveRefreshToken()
+    private CookieOptions SetCookieOptions(TokenTypes typesTokens)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == _user.Id);
-    }
-
-    public string GetJwtAccessToken()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      int tokenLifetime = _jwtSettings.AccessTokenLifetime;
-
-      var claims = new List<Claim>
+      if (typesTokens == TokenTypes.Access)
       {
-        new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
-        new Claim(ClaimTypes.Email, _user.Email),
-        new Claim(ClaimTypes.Role, _user.Post),
-      };
-
-      string result = _tokenService.CreateJwtToken(claims, tokenLifetime);
-      if (string.IsNullOrEmpty(result))
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      return result;
-    }
-
-    public async Task ValidateDataUpdatePassword(UpdatePasswordRequest request)
-    {
-      bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
-      if (!email)
-        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
-
-      bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
-      if (!password)
-        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
-
-      bool newPassword = RegExHelper.ChackString(request.newPassword, RegExPatterns.Password);
-      if (!newPassword)
-        throw new CustomException(ErrorTypes.ValidationError, "New password is incorrect or null");
-
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email)
-        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      _user = new User
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
+        };
+      }
+      else if (typesTokens == TokenTypes.Refresh)
       {
-        Id = user.Id,
-        FirstName = user.FirstName,
-        Email = user.Email,
-        Post = user.Post,
-        Age = user.Age,
-        FatherName = user.FatherName,
-        Gender = user.Gender,
-        IsConfirmed = user.IsConfirmed,
-        LastName = user.LastName,
-        Password = user.Password,
-        PhoneNumber = user.PhoneNumber,
-        RegistrationDate = user.RegistrationDate
-      };
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtSettings.RefreshTokenLifetime),
+        };
+      }
+      else
+      {
+        return new CookieOptions
+        {
+          MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
+        };
+      }
     }
-
-    public void VerificationPassword(string input)
+    private void SetAccessTokenCookie(HttpContext httpContext, string accessToken)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
-      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
-      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      string hash = _hesherService.GetHash(input, saltArray);
-      bool result = hash == _user.Password;
+      httpContext.Response.Cookies.Append("accessToken", accessToken, SetCookieOptions(TokenTypes.Access));
+    }
+    private void SetUnauthorizedCookies(HttpContext httpContext)
+    {
+      httpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
+      httpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
+    }
+    private void CheckPasswordDifference(UpdatePasswordRequest request)
+    {
+      if (request.Password == request.NewPassword)
+        throw new CustomException(ErrorTypes.BadRequest, "The old password is the same as the new one");
+    }
+    private void PasswordСheck(User user, string requestPassword)
+    {
+      var result = HesherService.PasswordСheck(user, requestPassword);
       if (!result)
         throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
     }
-
-    public CookieOptions SetCookieOptions()
+    private async Task SaveNewPassword(User user, string hash)
     {
-      return new CookieOptions
-      {
-        MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
-      };
+      var entityUser = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Id == user.Id)
+          ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
+
+      entityUser.Password = hash;
+
+      await _repository.UpdateAsync<EntityUser>(entityUser);
     }
-
-    public string GetHash(string input)
+    private async Task RemoveRefreshToken(User user)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
-      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
-      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      string result = _hesherService.GetHash(input, saltArray);
-      if (string.IsNullOrEmpty(result))
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      return result;
-    }
-
-    public async Task SaveNewPassword(string input)
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id)
-        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      user.Password = input;
-
-      await _repository.UpdateAsync<EntityUser>(user);
-    }
-
-    public async Task SendUpdatePasswordEmail()
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      string html = await _emailService.CompileHtmlStringAsync("UpdatePassword", new { });
-
-      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
+      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == user.Id);
     }
   }
 }

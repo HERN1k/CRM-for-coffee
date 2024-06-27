@@ -12,15 +12,6 @@ namespace CRM.API.GraphQl.Mutations
     public async Task<OperationResult> AddOrder(
         [Service] IOrderService orderService,
         CreateOrderRequest input
-      )
-    {
-      orderService.ValidateOrderData(input);
-
-      await orderService.CreateOrder(input);
-
-      await orderService.SaveOrder();
-
-      return new OperationResult(true);
-    }
+      ) => await orderService.AddOrderAsync(input);
   }
 }

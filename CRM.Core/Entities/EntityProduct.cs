@@ -1,8 +1,9 @@
 ﻿using CRM.Core.Entities.BaseEntities;
+using CRM.Core.Interfaces.Entity;
 
 namespace CRM.Core.Entities
 {
-  public class EntityProduct : BaseProductEntity
+  public class EntityProduct : BaseProductEntity, IEntityWithName, IEntityWithId
   {
     public string Image { get; set; } = string.Empty;
     public Guid ProductCategoryId { get; set; }

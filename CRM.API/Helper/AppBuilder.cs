@@ -3,6 +3,7 @@ using System.Text;
 
 using CRM.API.GraphQl.Mutations;
 using CRM.API.GraphQl.Queries;
+using CRM.Application.EmailManager;
 using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
 using CRM.Application.Services.OrderServices;
@@ -15,7 +16,6 @@ using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
 using CRM.Core.Interfaces.OrderServices;
-using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.ProductsServices;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
@@ -204,6 +204,7 @@ namespace CRM.API.Helper
     public void ConfigureGraphQL()
     {
       _builder.Services.AddHttpContextAccessor();
+
       _builder.Services
         .AddGraphQLServer()
         .AddErrorFilter<GraphQlErrorFilter>()
@@ -232,7 +233,7 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IRepository, Repository>();
       _builder.Services.AddScoped<IEmailService, EmailService>();
 
-      _builder.Services.AddScoped<IHesherService, HesherService>();
+      _builder.Services.AddScoped<IEmailSender, EmailSender>();
       _builder.Services.AddScoped<ITokenService, TokenService>();
 
       _builder.Services.AddScoped<IRegisterService, RegisterService>();

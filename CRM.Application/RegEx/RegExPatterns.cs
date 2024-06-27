@@ -1,5 +1,8 @@
 ﻿namespace CRM.Application.RegEx
 {
+  /// <summary>
+  ///   Regular expression patterns for application
+  /// </summary>
   public static class RegExPatterns
   {
     public static string FirstName { get; } = "^[A-Za-z].{1,31}$";

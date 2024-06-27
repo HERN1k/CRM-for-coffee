@@ -1,8 +1,10 @@
-﻿namespace CRM.Core.Interfaces.AuthServices
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CRM.Core.Interfaces.AuthServices
 {
   public interface ISignOutService
   {
-    string TokenDecryption(string token);
-    Task RemoveToken(string email, string refreshToken);
+    Task<IActionResult> LogoutAsync(HttpContext httpContext);
   }
 }

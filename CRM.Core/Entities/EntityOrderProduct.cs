@@ -1,8 +1,9 @@
 ﻿using CRM.Core.Entities.BaseEntities;
+using CRM.Core.Interfaces.Entity;
 
 namespace CRM.Core.Entities
 {
-  public class EntityOrderProduct : BaseEntity
+  public class EntityOrderProduct : BaseEntity, IEntityWithId
   {
     public Guid ProductId { get; set; }
     public int Amount { get; set; }

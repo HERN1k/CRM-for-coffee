@@ -1,21 +1,19 @@
-﻿using System.Security.Claims;
-using System.Text;
-
-using CRM.Application.RegEx;
+﻿using CRM.Application.RequestDataMapper;
+using CRM.Application.RequestValidation;
+using CRM.Application.Security;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.JwtToken;
-using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 using CRM.Core.Responses;
 
 using Microsoft.AspNetCore.Http;
-
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.AuthServices
@@ -23,96 +21,54 @@ namespace CRM.Application.Services.AuthServices
   public class SignInService(
       IOptions<JwtSettings> jwtSettings,
       IRepository repository,
-      IHesherService hashPassword,
       ITokenService tokenServices
     ) : ISignInService
   {
-    private User? _user { get; set; }
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly IRepository _repository = repository;
-    private readonly IHesherService _hashPassword = hashPassword;
     private readonly ITokenService _tokenServices = tokenServices;
 
-    public async Task SetData(string email)
+    public async Task<IActionResult> SignInAsync(HttpContext httpContext, SignInRequest request)
     {
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == email)
+      RequestValidator.Validate(request);
+
+      var entityUser = await GetUserFromDB(request);
+
+      User user = RequestMapper.MapToModel(entityUser);
+
+      ChackingCorrectPassword(user, request);
+
+      string accessToken = _tokenServices.GetJwtToken(user, TokenTypes.Access);
+      string refreshToken = _tokenServices.GetJwtToken(user, TokenTypes.Refresh);
+
+      await SaveToken(user, refreshToken);
+
+      SetCookie(httpContext, accessToken, refreshToken);
+
+      var response = CreateResponse(user, refreshToken);
+
+      return new OkObjectResult(response);
+    }
+
+    private async Task<EntityUser> GetUserFromDB(SignInRequest request)
+    {
+      var result = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.Email)
         ?? throw new CustomException(ErrorTypes.InvalidOperationException, "The user is not registered");
-
-      _user = new User
-      {
-        Id = user.Id,
-        FirstName = user.FirstName,
-        LastName = user.LastName,
-        FatherName = user.FatherName,
-        Email = user.Email,
-        Password = user.Password,
-        Post = user.Post,
-        Age = user.Age,
-        Gender = user.Gender,
-        PhoneNumber = user.PhoneNumber,
-        IsConfirmed = user.IsConfirmed,
-        RegistrationDate = user.RegistrationDate
-      };
-
-      if (!_user.IsConfirmed)
-        throw new CustomException(ErrorTypes.BadRequest, "Mail is unconfirmed");
+      return result;
     }
-
-    public void ValidationDataSignIn(SignInRequest request)
+    private void ChackingCorrectPassword(User user, SignInRequest request)
     {
-      bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
-      if (!email)
-        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
-
-      bool password = RegExHelper.ChackString(request.password, RegExPatterns.Password);
-      if (!password)
-        throw new CustomException(ErrorTypes.ValidationError, "Password is incorrect or null");
-    }
-
-    public void VerificationHash(string requestPassword)
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
-      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
-      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      string hash = _hashPassword.GetHash(requestPassword, saltArray);
-      bool result = hash == _user.Password;
-      if (!result)
+      bool isCorrectPassword = HesherService.PasswordСheck(user, request.Password);
+      if (!isCorrectPassword)
         throw new CustomException(ErrorTypes.BadRequest, "Incorrect password");
     }
-
-    public string GetJwtToken(TokenTypes typesTokens)
+    private async Task SaveToken(User user, string token)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      int tokenLifetime = 30;
-      var claims = new List<Claim>
-      {
-        new Claim(ClaimTypes.NameIdentifier, _user.Id.ToString()),
-        new Claim(ClaimTypes.Email, _user.Email),
-        new Claim(ClaimTypes.Role, _user.Post),
-      };
-
-      if ((int)typesTokens == 1)
-        tokenLifetime = _jwtSettings.AccessTokenLifetime;
-      else if ((int)typesTokens == 2)
-        tokenLifetime = _jwtSettings.RefreshTokenLifetime;
-
-      return _tokenServices.CreateJwtToken(claims, tokenLifetime);
-    }
-
-    public async Task SaveToken(string token)
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      bool tokenSaved = await _repository.AnyAsync<EntityRefreshToken>(e => e.Id == _user.Id);
+      bool tokenSaved = await _repository.AnyAsync<EntityRefreshToken>(e => e.Id == user.Id);
 
       if (tokenSaved)
       {
-        var updateToken = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == _user.Id)
+        var updateToken = await _repository.FindSingleAsync<EntityRefreshToken>(e => e.Id == user.Id)
           ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
         updateToken.RefreshTokenString = token;
@@ -123,30 +79,13 @@ namespace CRM.Application.Services.AuthServices
 
       var seveToken = new EntityRefreshToken
       {
-        Id = _user.Id,
+        Id = user.Id,
         RefreshTokenString = token
       };
 
       await _repository.AddAsync<EntityRefreshToken>(seveToken);
     }
-
-    public SignInResponse SetResponse(string refreshToken)
-    {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      return new SignInResponse
-      {
-        RefreshToken = refreshToken,
-        FirstName = _user.FirstName,
-        LastName = _user.LastName,
-        FatherName = _user.FatherName,
-        Email = _user.Email,
-        Gender = _user.Gender,
-        Post = _user.Post
-      };
-    }
-
-    public CookieOptions SetCookieOptions(TokenTypes typesTokens)
+    private CookieOptions SetCookieOptions(TokenTypes typesTokens)
     {
       if (typesTokens == TokenTypes.Access)
       {
@@ -169,6 +108,24 @@ namespace CRM.Application.Services.AuthServices
           MaxAge = TimeSpan.FromMinutes(_jwtSettings.AccessTokenLifetime),
         };
       }
+    }
+    private void SetCookie(HttpContext httpContext, string accessToken, string refreshToken)
+    {
+      httpContext.Response.Cookies.Append("accessToken", accessToken, SetCookieOptions(TokenTypes.Access));
+      httpContext.Response.Cookies.Append("refreshToken", refreshToken, SetCookieOptions(TokenTypes.Refresh));
+    }
+    private SignInResponse CreateResponse(User user, string refreshToken)
+    {
+      return new SignInResponse
+      {
+        RefreshToken = refreshToken,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        FatherName = user.FatherName,
+        Email = user.Email,
+        Gender = user.Gender,
+        Post = user.Post
+      };
     }
   }
 }

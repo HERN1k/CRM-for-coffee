@@ -11,16 +11,11 @@ namespace CRM.API.Controllers.Auth
 {
   [ApiController]
   [Route("Api/Auth")]
-  public class RecoveryPasswordController : ControllerBase, IRecoveryPasswordController
+  public class RecoveryPasswordController(
+      IAuthRecoveryService authRecoveryService
+    ) : ControllerBase, IRecoveryPasswordController
   {
-    private readonly IAuthRecoveryService _authRecoveryService;
-
-    public RecoveryPasswordController(
-        IAuthRecoveryService authRecoveryService
-      )
-    {
-      _authRecoveryService = authRecoveryService;
-    }
+    private readonly IAuthRecoveryService _authRecoveryService = authRecoveryService;
 
     [SwaggerOperation(
       Summary = "Recovery user password.",
@@ -31,24 +26,7 @@ namespace CRM.API.Controllers.Auth
     [SwaggerResponse(400, null, typeof(ExceptionResponse))]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
     [HttpPost("RecoveryPassword")]
-    public async Task<IActionResult> RecoveryPassword(RecoveryPasswordRequest request)
-    {
-      await _authRecoveryService.ValidationDataRecoveryPass(request);
-
-      _authRecoveryService.СomparisonRecoveryPassData(request);
-
-      string newPassword = _authRecoveryService.GetNewPassword(16);
-
-      await _authRecoveryService.SendRecoveryPassEmail(newPassword);
-
-      await _authRecoveryService.SaveNewPassword(newPassword);
-
-      await _authRecoveryService.RemoveRefreshToken();
-
-      HttpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
-      HttpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
-
-      return Ok();
-    }
+    public async Task<IActionResult> RecoveryPassword(RecoveryPasswordRequest request) =>
+      await _authRecoveryService.RecoveryPasswordAsync(HttpContext, request);
   }
 }

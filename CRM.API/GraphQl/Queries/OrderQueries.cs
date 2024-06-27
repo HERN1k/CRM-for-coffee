@@ -12,7 +12,7 @@ namespace CRM.API.GraphQl.Queries
     [Authorize(Policy = "AdminOrLower")]
     public async Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDay(
         [Service] IOrderService orderService
-      ) => await orderService.GetEmployeeOrdersForDay();
+      ) => await orderService.GetEmployeeOrdersForDayAsync();
 
     [UseProjection]
     [UseSorting]
@@ -20,6 +20,6 @@ namespace CRM.API.GraphQl.Queries
     [Authorize(Policy = "ManagerOrUpper")]
     public IQueryable<EntityOrder> GetOrders(
         [Service] IOrderService orderService
-      ) => orderService.GetOrders();
+      ) => orderService.GetOrdersAsync();
   }
 }

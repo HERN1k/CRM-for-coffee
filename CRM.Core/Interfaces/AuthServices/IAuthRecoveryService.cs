@@ -1,14 +1,12 @@
 ﻿using CRM.Core.Contracts.RestDto;
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
 namespace CRM.Core.Interfaces.AuthServices
 {
   public interface IAuthRecoveryService
   {
-    Task ValidationDataRecoveryPass(RecoveryPasswordRequest request);
-    void СomparisonRecoveryPassData(RecoveryPasswordRequest request);
-    string GetNewPassword(int length);
-    Task SendRecoveryPassEmail(string password);
-    Task SaveNewPassword(string password);
-    Task RemoveRefreshToken();
+    Task<IActionResult> RecoveryPasswordAsync(HttpContext httpContext, RecoveryPasswordRequest request);
   }
 }

@@ -2,7 +2,7 @@
 
 namespace CRM.Core.Contracts.RestDto
 {
-    public record ChangeTokenRequest(
-        [Required] string email
-      );
+  public record ChangeTokenRequest(
+    [Required] string Email
+  );
 }

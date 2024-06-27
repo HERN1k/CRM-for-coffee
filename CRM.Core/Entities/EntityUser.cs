@@ -1,8 +1,9 @@
 ﻿using CRM.Core.Entities.BaseEntities;
+using CRM.Core.Interfaces.Entity;
 
 namespace CRM.Core.Entities
 {
-  public class EntityUser : BaseEntity
+  public class EntityUser : BaseEntity, IEntityWithId
   {
     public string Password { get; set; } = null!;
     public string FirstName { get; set; } = null!;

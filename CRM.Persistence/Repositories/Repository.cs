@@ -10,24 +10,31 @@ using Microsoft.Extensions.Logging;
 
 namespace CRM.Data.Repositories
 {
-  public class Repository : IAsyncDisposable, IRepository
+  public class Repository(
+      ILogger<Repository> logger,
+      IDbContextFactory<AppDBContext> contextFactory
+    ) : IAsyncDisposable, IRepository
   {
-    private readonly ILogger<Repository> _logger;
-    private readonly AppDBContext _сontext;
+    private readonly ILogger<Repository> _logger = logger;
+    private readonly AppDBContext _сontext = contextFactory.CreateDbContext();
 
-    public Repository(
-        ILogger<Repository> logger,
-        IDbContextFactory<AppDBContext> contextFactory
-      )
-    {
-      _logger = logger;
-      _сontext = contextFactory.CreateDbContext();
-    }
-
-    #region FindSingleAsync
-    public async Task<T?> FindSingleAsync<T>(
-        Expression<Func<T, bool>> predicate
-      ) where T : class
+    /// <summary>
+    ///   Finds a single entity asynchronously that matches the specified predicate.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="predicate">The predicate to filter the entity.</param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation. The task result contains the entity that matches the predicate, 
+    ///   or null if no such entity is found.
+    /// </returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null or an unexpected exception occurs.</description></item>
+    /// <item><description><see cref="ErrorTypes.InvalidOperationException"/>: If the query returns more than one entity.</description></item>
+    /// </list>
+    /// </exception>
+    public async Task<T?> FindSingleAsync<T>(Expression<Func<T, bool>> predicate) where T : class
     {
       try
       {
@@ -54,12 +61,22 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region AnyAsync
-    public async Task<bool> AnyAsync<T>(
-        Expression<Func<T, bool>> predicate
-      ) where T : class
+    /// <summary>
+    ///   Determines asynchronously whether any elements in the set match the specified predicate.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="predicate">The predicate to filter the entities.</param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation. The task result contains true if any elements match the predicate; otherwise, false.
+    /// </returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
+    public async Task<bool> AnyAsync<T>(Expression<Func<T, bool>> predicate) where T : class
     {
       try
       {
@@ -83,12 +100,22 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region FindManyAsync
-    public async Task<IEnumerable<T>> FindManyAsync<T>(
-        Expression<Func<T, bool>> predicate
-      ) where T : class
+    /// <summary>
+    ///   Finds multiple entities asynchronously that match the specified predicate.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="predicate">The predicate to filter the entities.</param>
+    /// <returns>
+    ///   A task that represents the asynchronous operation. The task result contains a collection of entities that match the predicate.
+    /// </returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
+    public async Task<IEnumerable<T>> FindManyAsync<T>(Expression<Func<T, bool>> predicate) where T : class
     {
       try
       {
@@ -111,16 +138,30 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region GetQueryable
+    /// <summary>
+    ///   Gets an <see cref="IQueryable{T}"/> for the specified entity type.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <returns>An <see cref="IQueryable{T}"/> for the specified entity type.</returns>
     public IQueryable<T> GetQueryable<T>() where T : class
     {
       return _сontext.Set<T>();
     }
-    #endregion
 
-    #region GetEnumerable
+    /// <summary>
+    ///   Retrieves all entities of the specified type from the database asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <returns>
+    ///   A task that represents the asynchronous operation. The task result contains an enumerable collection of entities of the specified type.
+    /// </returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
     public async Task<IEnumerable<T>> GetEnumerable<T>() where T : class
     {
       try
@@ -143,9 +184,20 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region AddAsync
+    /// <summary>
+    ///   Adds a new entity to the database asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="entity">The entity to add to the database.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.InvalidOperationException"/>: If the entity is null.</description></item>
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null, a validation exception occurs, or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
     public async Task AddAsync<T>(T entity) where T : class
     {
       try
@@ -189,9 +241,20 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region UpdateAsync
+    /// <summary>
+    ///   Updates an existing entity in the database asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="entity">The entity to update in the database.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.InvalidOperationException"/>: If the entity is null.</description></item>
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null, a validation exception occurs, or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
     public async Task UpdateAsync<T>(T entity) where T : class
     {
       try
@@ -235,9 +298,19 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region RemoveAsync
+    /// <summary>
+    ///   Removes entities from the database asynchronously that match the specified predicate.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="predicate">The predicate to filter the entities to be removed.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null, a validation exception occurs, or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
     public async Task RemoveAsync<T>(Expression<Func<T, bool>> predicate) where T : class
     {
       try
@@ -276,9 +349,20 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region RemoveManyAsync
+    /// <summary>
+    ///   Removes a list of entities from the database asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the entity.</typeparam>
+    /// <param name="entities">The list of entities to remove from the database.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="CustomException">
+    ///   Thrown when an error occurs during the operation:
+    /// <list type="bullet">
+    /// <item><description><see cref="ErrorTypes.InvalidOperationException"/>: If the list of entities is null or empty.</description></item>
+    /// <item><description><see cref="ErrorTypes.ServerError"/>: If an argument is null, a validation exception occurs, or an unexpected exception occurs.</description></item>
+    /// </list>
+    /// </exception>
     public async Task RemoveManyAsync<T>(List<T> entities) where T : class
     {
       try
@@ -322,13 +406,10 @@ namespace CRM.Data.Repositories
         throw new CustomException(ErrorTypes.ServerError, "An unexpected database exception occurred", ex);
       }
     }
-    #endregion
 
-    #region DisposeAsync
     public ValueTask DisposeAsync()
     {
       return _сontext.DisposeAsync();
     }
-    #endregion
   }
 }

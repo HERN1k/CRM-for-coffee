@@ -1,83 +1,79 @@
-﻿using System.Text;
+﻿using System.Text.RegularExpressions;
 
 using CRM.Application.RegEx;
+using CRM.Application.RequestDataMapper;
+using CRM.Application.RequestValidation;
+using CRM.Application.Security;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
-using CRM.Core.Interfaces.PasswordHesher;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Models;
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.Application.Services.AuthServices
 {
   public class AuthRecoveryService(
       IRepository repository,
-      IEmailService emailService,
-      IHesherService hashPassword
+      IEmailSender emailSender
     ) : IAuthRecoveryService
   {
     private readonly IRepository _repository = repository;
-    private readonly IEmailService _emailService = emailService;
-    private readonly IHesherService _hashPassword = hashPassword;
-    private User? _user { get; set; }
+    private readonly IEmailSender _emailSender = emailSender;
 
-    public async Task ValidationDataRecoveryPass(RecoveryPasswordRequest request)
+    public async Task<IActionResult> RecoveryPasswordAsync(HttpContext httpContext, RecoveryPasswordRequest request)
     {
-      bool email = RegExHelper.ChackString(request.email, RegExPatterns.Email);
-      if (!email)
-        throw new CustomException(ErrorTypes.ValidationError, "Email is incorrect or null");
+      RequestValidator.Validate(request);
 
-      bool phoneNumber = RegExHelper.ChackString(request.phoneNumber, RegExPatterns.PhoneNumber);
-      if (!phoneNumber)
-        throw new CustomException(ErrorTypes.ValidationError, "Phone number is incorrect or null");
+      EntityUser entityUser = await FindUserFromDB(request.Email, ErrorTypes.BadRequest, "The user is not registered");
 
-      bool post = RegExHelper.ChackString(request.post, RegExPatterns.Post);
-      if (!post)
-        throw new CustomException(ErrorTypes.ValidationError, "Post is incorrect or null");
+      User user = RequestMapper.MapToModel(entityUser);
 
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Email == request.email)
-        ?? throw new CustomException(ErrorTypes.BadRequest, "The user is not registered");
+      СomparisonRecoveryPassData(user, request);
 
-      _user = new User
-      {
-        Id = user.Id,
-        FirstName = user.FirstName,
-        LastName = user.LastName,
-        FatherName = user.FatherName,
-        Email = user.Email,
-        Password = user.Password,
-        Post = user.Post,
-        Age = user.Age,
-        Gender = user.Gender,
-        PhoneNumber = user.PhoneNumber,
-        IsConfirmed = user.IsConfirmed,
-        RegistrationDate = user.RegistrationDate
-      };
+      string newPassword = GetNewPassword(16);
+
+      await _emailSender.SendRecoveryPasswordEmail(user, newPassword);
+
+      string hash = HesherService.GetPasswordHash(user, newPassword);
+
+      await SaveNewPassword(user, hash);
+
+      await RemoveRefreshToken(user);
+
+      SetUnauthorizedCookies(httpContext);
+
+      return new OkResult();
     }
 
-    public void СomparisonRecoveryPassData(RecoveryPasswordRequest request)
+    private async Task<EntityUser> FindUserFromDB(string email, ErrorTypes type, string errorMassage)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      if (_user.PhoneNumber != request.phoneNumber)
+      var result = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Email == email)
+          ?? throw new CustomException(type, errorMassage);
+      return result;
+    }
+    private void СomparisonRecoveryPassData(User user, RecoveryPasswordRequest request)
+    {
+      if (user.PhoneNumber != request.PhoneNumber)
         throw new CustomException(ErrorTypes.BadRequest, "Some data doesn't match");
-      if (_user.Post != request.post)
+      if (user.Post != request.Post)
         throw new CustomException(ErrorTypes.BadRequest, "Some data doesn't match");
     }
-
-    public string GetNewPassword(int length)
+    private string GetNewPassword(int length)
     {
       string newPassword;
       bool isCorrect;
       int iterations = 0;
       do
       {
-        newPassword = _hashPassword.GetRandomPassword(length);
-        isCorrect = RegExHelper.ChackString(newPassword, RegExPatterns.Password);
+        newPassword = HesherService.GetRandomPassword(length);
+        isCorrect = Regex.IsMatch(newPassword, RegExPatterns.Password);
         iterations++;
       } while (!(isCorrect || iterations >= 10));
 
@@ -86,43 +82,24 @@ namespace CRM.Application.Services.AuthServices
 
       return newPassword;
     }
-
-    public async Task SendRecoveryPassEmail(string password)
+    private async Task SaveNewPassword(User user, string hash)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
+      var entityUser = await _repository
+        .FindSingleAsync<EntityUser>(e => e.Id == user.Id)
+          ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
 
-      string html = await _emailService.CompileHtmlStringAsync("RecoveryPassword", new RecoveryPassword
-      {
-        Password = password
-      });
+      entityUser.Password = hash;
 
-      await _emailService.SendEmailAsync(_user.FirstName, _user.Email, html);
+      await _repository.UpdateAsync<EntityUser>(entityUser);
     }
-
-    public async Task SaveNewPassword(string password)
+    private async Task RemoveRefreshToken(User user)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-      string date = _user.RegistrationDate.ToString("dd.MM.yyyy HH:mm:ss");
-      string processedSalt = date.Replace(" ", "").Replace(".", "").Replace(":", "");
-      byte[] saltArray = Encoding.Default.GetBytes(processedSalt);
-      string hash = _hashPassword.GetHash(password, saltArray);
-
-      var user = await _repository.FindSingleAsync<EntityUser>(e => e.Id == _user.Id)
-        ?? throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      user.Password = hash;
-
-      await _repository.UpdateAsync<EntityUser>(user);
+      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == user.Id);
     }
-
-    public async Task RemoveRefreshToken()
+    private void SetUnauthorizedCookies(HttpContext httpContext)
     {
-      if (_user == null)
-        throw new CustomException(ErrorTypes.ServerError, "Server error");
-
-      await _repository.RemoveAsync<EntityRefreshToken>(e => e.Id == _user.Id);
+      httpContext.Response.Cookies.Append("accessToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-30) });
+      httpContext.Response.Cookies.Append("refreshToken", string.Empty, new CookieOptions { MaxAge = TimeSpan.FromMinutes(-1440) });
     }
   }
 }
