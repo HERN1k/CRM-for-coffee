@@ -3,7 +3,7 @@ using CRM.Core.Interfaces.Entity;
 
 namespace CRM.Core.Entities
 {
-  public class EntityProduct : BaseProductEntity, IEntityWithName, IEntityWithId
+  public class EntityProduct : BaseProductEntity, IEntityWithId, IEntityWithName
   {
     public string Image { get; set; } = string.Empty;
     public Guid ProductCategoryId { get; set; }

@@ -20,6 +20,6 @@ namespace CRM.API.GraphQl.Queries
     [Authorize(Policy = "ManagerOrUpper")]
     public IQueryable<EntityOrder> GetOrders(
         [Service] IOrderService orderService
-      ) => orderService.GetOrdersAsync();
+      ) => orderService.GetOrders();
   }
 }

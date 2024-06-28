@@ -65,7 +65,7 @@ namespace CRM.Application.Services.OrderServices
       return result;
     }
 
-    public IQueryable<EntityOrder> GetOrdersAsync() =>
+    public IQueryable<EntityOrder> GetOrders() =>
       _repository.GetQueryable<EntityOrder>();
   }
 }

@@ -21,7 +21,7 @@ namespace CRM.Application.Services.ProductsServices
     public IQueryable<EntityAddOn> GetAddOns() =>
       _repository.GetQueryable<EntityAddOn>();
 
-    public async Task<EntityProductCategory> SetProductCategory(ProductCategoryRequest request)
+    public async Task<EntityProductCategory> SetProductCategoryAsync(ProductCategoryRequest request)
     {
       RequestValidator.Validate(request);
 
@@ -32,7 +32,7 @@ namespace CRM.Application.Services.ProductsServices
       return newProductCategory;
     }
 
-    public async Task<EntityProduct> SetProduct(ProductRequest request)
+    public async Task<EntityProduct> SetProductAsync(ProductRequest request)
     {
       RequestValidator.Validate(request);
 
@@ -45,7 +45,7 @@ namespace CRM.Application.Services.ProductsServices
       return newProduct;
     }
 
-    public async Task<EntityAddOn> SetAddOn(AddOnRequest request)
+    public async Task<EntityAddOn> SetAddOnAsync(AddOnRequest request)
     {
       RequestValidator.Validate(request);
 
@@ -56,7 +56,7 @@ namespace CRM.Application.Services.ProductsServices
       return newAddOn;
     }
 
-    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(params string[] names)
+    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategoriesAsync(params string[] names)
     {
       ValidateObjectCountForDeletion(names);
 
@@ -69,7 +69,7 @@ namespace CRM.Application.Services.ProductsServices
       return await _repository.GetEnumerable<EntityProductCategory>();
     }
 
-    public async Task<IEnumerable<EntityProduct>> RemoveProducts(params string[] names)
+    public async Task<IEnumerable<EntityProduct>> RemoveProductsAsync(params string[] names)
     {
       ValidateObjectCountForDeletion(names);
 
@@ -82,7 +82,7 @@ namespace CRM.Application.Services.ProductsServices
       return await _repository.GetEnumerable<EntityProduct>();
     }
 
-    public async Task<IEnumerable<EntityAddOn>> RemoveAddOns(params string[] names)
+    public async Task<IEnumerable<EntityAddOn>> RemoveAddOnsAsync(params string[] names)
     {
       ValidateObjectCountForDeletion(names);
 

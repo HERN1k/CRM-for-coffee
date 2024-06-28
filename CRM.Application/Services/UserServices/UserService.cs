@@ -4,20 +4,13 @@ using CRM.Core.Interfaces.UserServices;
 
 namespace CRM.Application.Services.UserServices
 {
-  public class UserService : IUserService
+  public class UserService(
+      IRepository repository
+    ) : IUserService
   {
-    private readonly IRepository _repository;
+    private readonly IRepository _repository = repository;
 
-    public UserService(
-        IRepository repository
-      )
-    {
-      _repository = repository;
-    }
-
-    #region GetUsers
     public IQueryable<EntityUser> GetUsers() =>
       _repository.GetQueryable<EntityUser>();
-    #endregion
   }
 }

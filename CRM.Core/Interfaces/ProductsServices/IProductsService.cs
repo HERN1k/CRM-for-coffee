@@ -8,11 +8,11 @@ namespace CRM.Core.Interfaces.ProductsServices
     IQueryable<EntityProductCategory> GetProductCategories();
     IQueryable<EntityProduct> GetProducts();
     IQueryable<EntityAddOn> GetAddOns();
-    Task<EntityProductCategory> SetProductCategory(ProductCategoryRequest request);
-    Task<EntityProduct> SetProduct(ProductRequest request);
-    Task<EntityAddOn> SetAddOn(AddOnRequest request);
-    Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(params string[] names);
-    Task<IEnumerable<EntityProduct>> RemoveProducts(params string[] names);
-    Task<IEnumerable<EntityAddOn>> RemoveAddOns(params string[] names);
+    Task<EntityProductCategory> SetProductCategoryAsync(ProductCategoryRequest request);
+    Task<EntityProduct> SetProductAsync(ProductRequest request);
+    Task<EntityAddOn> SetAddOnAsync(AddOnRequest request);
+    Task<IEnumerable<EntityProductCategory>> RemoveProductCategoriesAsync(params string[] names);
+    Task<IEnumerable<EntityProduct>> RemoveProductsAsync(params string[] names);
+    Task<IEnumerable<EntityAddOn>> RemoveAddOnsAsync(params string[] names);
   }
 }

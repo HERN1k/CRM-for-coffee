@@ -8,7 +8,9 @@ using CRM.Application.Security;
 using CRM.Application.Services.AuthServices;
 using CRM.Application.Services.OrderServices;
 using CRM.Application.Services.ProductsServices;
+using CRM.Application.Services.ReportsServices;
 using CRM.Application.Services.UserServices;
+using CRM.Core.Excel;
 using CRM.Core.GraphQlTypes.OrderTypes;
 using CRM.Core.GraphQlTypes.ProductTypes;
 using CRM.Core.GraphQlTypes.UserTypes;
@@ -17,12 +19,14 @@ using CRM.Core.Interfaces.Email;
 using CRM.Core.Interfaces.JwtToken;
 using CRM.Core.Interfaces.OrderServices;
 using CRM.Core.Interfaces.ProductsServices;
+using CRM.Core.Interfaces.ReportsServices;
 using CRM.Core.Interfaces.Repositories;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Interfaces.UserServices;
 using CRM.Data;
 using CRM.Data.Repositories;
 using CRM.Infrastructure.Email;
+using CRM.Infrastructure.Excel;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -234,6 +238,7 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IEmailService, EmailService>();
 
       _builder.Services.AddScoped<IEmailSender, EmailSender>();
+      _builder.Services.AddScoped<IExcelService, ExcelService>();
       _builder.Services.AddScoped<ITokenService, TokenService>();
 
       _builder.Services.AddScoped<IRegisterService, RegisterService>();
@@ -241,6 +246,7 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<ISignOutService, SignOutService>();
       _builder.Services.AddScoped<IAuthSundryService, AuthSundryService>();
       _builder.Services.AddScoped<IAuthRecoveryService, AuthRecoveryService>();
+      _builder.Services.AddScoped<IReportsService, ReportsService>();
 
       _builder.Services.AddScoped<IUserService, UserService>();
       _builder.Services.AddScoped<IProductsService, ProductsService>();

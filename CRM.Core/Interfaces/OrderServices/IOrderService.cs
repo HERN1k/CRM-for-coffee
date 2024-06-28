@@ -8,6 +8,6 @@ namespace CRM.Core.Interfaces.OrderServices
   {
     Task<OperationResult> AddOrderAsync(CreateOrderRequest input);
     Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDayAsync();
-    IQueryable<EntityOrder> GetOrdersAsync();
+    IQueryable<EntityOrder> GetOrders();
   }
 }
