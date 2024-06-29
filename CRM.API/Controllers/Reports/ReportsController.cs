@@ -46,11 +46,23 @@ namespace CRM.API.Controllers.Reports
       Tags = ["Reports"]
     )]
     [SwaggerResponse(200)]
-    //[SwaggerResponse(400, null, typeof(ExceptionResponse))]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
-    //[Authorize(Policy = "ManagerOrUpper")]
+    [Authorize(Policy = "ManagerOrUpper")]
     [HttpGet("Orders")]
     public async Task<IActionResult> Orders() =>
       await _reportsService.OrdersAsync();
+
+    [SwaggerOperation(
+      Summary = "Creates an Excel file with orders by date.",
+      OperationId = "ByDate",
+      Tags = ["Reports"]
+    )]
+    [SwaggerResponse(200)]
+    [SwaggerResponse(400, null, typeof(ExceptionResponse))]
+    [SwaggerResponse(500, null, typeof(ExceptionResponse))]
+    [Authorize(Policy = "ManagerOrUpper")]
+    [HttpGet("OrdersByDate")]
+    public async Task<IActionResult> OrdersByDate([FromQuery] DateTime startDate, [FromQuery] DateTime endDate) =>
+      await _reportsService.OrdersByDateAsync(startDate, endDate);
   }
 }

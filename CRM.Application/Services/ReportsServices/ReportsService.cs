@@ -1,6 +1,10 @@
-﻿using ClosedXML.Excel;
+﻿using System.Text;
 
+using ClosedXML.Excel;
+
+using CRM.Core.Enums;
 using CRM.Core.Excel;
+using CRM.Core.Exceptions;
 using CRM.Core.Interfaces.ReportsServices;
 
 using Microsoft.AspNetCore.Mvc;
@@ -23,7 +27,11 @@ namespace CRM.Application.Services.ReportsServices
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = $"Menu {DateTime.Now.ToString("dd/MM/yyyy HH-mm")}.xlsx";
+        string fileName = new StringBuilder()
+          .Append("Menu ")
+          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
+          .Append(".xlsx")
+          .ToString();
 
         return File(stream.ToArray(), contentType, fileName);
       }
@@ -39,7 +47,11 @@ namespace CRM.Application.Services.ReportsServices
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = $"Workers {DateTime.Now.ToString("dd/MM/yyyy HH-mm")}.xlsx";
+        string fileName = new StringBuilder()
+          .Append("Workers ")
+          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
+          .Append(".xlsx")
+          .ToString();
 
         return File(stream.ToArray(), contentType, fileName);
       }
@@ -55,7 +67,38 @@ namespace CRM.Application.Services.ReportsServices
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = $"Orders {DateTime.Now.ToString("dd/MM/yyyy HH-mm")}.xlsx";
+        string fileName = new StringBuilder()
+          .Append("Orders ")
+          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
+          .Append(".xlsx")
+          .ToString();
+
+        return File(stream.ToArray(), contentType, fileName);
+      }
+    }
+
+    public async Task<IActionResult> OrdersByDateAsync(DateTime startDate, DateTime endDate)
+    {
+      if (startDate > endDate)
+        throw new CustomException(ErrorTypes.BadRequest, "Start date is greater than end date");
+
+      XLWorkbook workbook = await _excelService.OrdersByDateWorkbook(startDate, endDate);
+
+      using (MemoryStream stream = new MemoryStream())
+      {
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+
+        string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        string fileName = new StringBuilder()
+          .Append("Orders (")
+          .Append(startDate.ToString("dd/MM/yyyy"))
+          .Append(" - ")
+          .Append(endDate.ToString("dd/MM/yyyy"))
+          .Append(") ")
+          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
+          .Append(".xlsx")
+          .ToString();
 
         return File(stream.ToArray(), contentType, fileName);
       }

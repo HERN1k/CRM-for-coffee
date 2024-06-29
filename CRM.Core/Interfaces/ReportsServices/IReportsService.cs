@@ -7,5 +7,6 @@ namespace CRM.Core.Interfaces.ReportsServices
     Task<IActionResult> MenuAsync();
     Task<IActionResult> WorkersAsync();
     Task<IActionResult> OrdersAsync();
+    Task<IActionResult> OrdersByDateAsync(DateTime startDate, DateTime endDate);
   }
 }

@@ -42,9 +42,31 @@ namespace CRM.Infrastructure.Excel
       var workbook = new XLWorkbook();
 
       workbook.Worksheets.Add("Orders");
+      workbook.Worksheets.Add("Products");
+      workbook.Worksheets.Add("Addons");
 
-      await FillingOrdersSheet(workbook.Worksheet("Orders"));
+      var orders = FindEntitiesOrder();
 
+      await FillingOrdersSheet(workbook.Worksheet("Orders"), orders);
+      await FillingOrderProductsSheet(workbook.Worksheet("Products"), orders);
+      await FillingOrderAddOnsSheet(workbook.Worksheet("Addons"), orders);
+
+      return workbook;
+    }
+
+    public async Task<XLWorkbook> OrdersByDateWorkbook(DateTime startDate, DateTime endDate)
+    {
+      var workbook = new XLWorkbook();
+
+      workbook.Worksheets.Add("Orders");
+      workbook.Worksheets.Add("Products");
+      workbook.Worksheets.Add("Addons");
+
+      var orders = FindEntitiesOrderByDate(startDate, endDate);
+
+      await FillingOrdersSheet(workbook.Worksheet("Orders"), orders);
+      await FillingOrderProductsSheet(workbook.Worksheet("Products"), orders);
+      await FillingOrderAddOnsSheet(workbook.Worksheet("Addons"), orders);
 
       return workbook;
     }

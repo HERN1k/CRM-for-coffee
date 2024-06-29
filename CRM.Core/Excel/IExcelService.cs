@@ -7,5 +7,6 @@ namespace CRM.Core.Excel
     Task<XLWorkbook> MenuWorkbook();
     Task<XLWorkbook> WorkersWorkbook();
     Task<XLWorkbook> OrdersWorkbook();
+    Task<XLWorkbook> OrdersByDateWorkbook(DateTime startDate, DateTime endDate);
   }
 }
