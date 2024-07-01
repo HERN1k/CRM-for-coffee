@@ -3,15 +3,15 @@
 using ClosedXML.Excel;
 
 using CRM.Core.Enums;
-using CRM.Core.Excel;
 using CRM.Core.Exceptions;
+using CRM.Core.Interfaces.Excel;
 using CRM.Core.Interfaces.ReportsServices;
 
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.Application.Services.ReportsServices
 {
-  public class ReportsService(
+    public class ReportsService(
       IExcelService excelService
     ) : Controller, IReportsService
   {

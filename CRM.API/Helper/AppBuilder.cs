@@ -10,12 +10,12 @@ using CRM.Application.Services.OrderServices;
 using CRM.Application.Services.ProductsServices;
 using CRM.Application.Services.ReportsServices;
 using CRM.Application.Services.UserServices;
-using CRM.Core.Excel;
 using CRM.Core.GraphQlTypes.OrderTypes;
 using CRM.Core.GraphQlTypes.ProductTypes;
 using CRM.Core.GraphQlTypes.UserTypes;
 using CRM.Core.Interfaces.AuthServices;
 using CRM.Core.Interfaces.Email;
+using CRM.Core.Interfaces.Excel;
 using CRM.Core.Interfaces.JwtToken;
 using CRM.Core.Interfaces.OrderServices;
 using CRM.Core.Interfaces.ProductsServices;
@@ -25,8 +25,9 @@ using CRM.Core.Interfaces.Settings;
 using CRM.Core.Interfaces.UserServices;
 using CRM.Data;
 using CRM.Data.Repositories;
-using CRM.Infrastructure.Email;
-using CRM.Infrastructure.Excel;
+using CRM.Infrastructure.Email.Services;
+using CRM.Infrastructure.Excel.Components;
+using CRM.Infrastructure.Excel.Services;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -238,8 +239,17 @@ namespace CRM.API.Helper
       _builder.Services.AddScoped<IEmailService, EmailService>();
 
       _builder.Services.AddScoped<IEmailSender, EmailSender>();
-      _builder.Services.AddScoped<IExcelService, ExcelService>();
       _builder.Services.AddScoped<ITokenService, TokenService>();
+
+
+
+      _builder.Services.AddScoped<IExcelService, ExcelService>();
+      _builder.Services.AddScoped<IExcelRepository, ExcelRepository>();
+      _builder.Services.AddScoped<IExcelStyles, ExcelStyles>();
+      _builder.Services.AddScoped<IExcelFillingSheet, ExcelFillingSheet>();
+      _builder.Services.AddScoped<IExcelSheetDataFiller, ExcelSheetDataFiller>();
+
+
 
       _builder.Services.AddScoped<IRegisterService, RegisterService>();
       _builder.Services.AddScoped<ISignInService, SignInService>();

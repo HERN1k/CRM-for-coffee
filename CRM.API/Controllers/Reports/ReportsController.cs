@@ -10,6 +10,7 @@ namespace CRM.API.Controllers.Reports
 {
   [ApiController]
   [Route("Api/Reports")]
+  [Authorize(Policy = "ManagerOrUpper")]
   public class ReportsController(
       IReportsService reportsService
     ) : ControllerBase
@@ -23,7 +24,6 @@ namespace CRM.API.Controllers.Reports
     )]
     [SwaggerResponse(200)]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
-    [Authorize(Policy = "ManagerOrUpper")]
     [HttpGet("Menu")]
     public async Task<IActionResult> Menu() =>
       await _reportsService.MenuAsync();
@@ -35,7 +35,6 @@ namespace CRM.API.Controllers.Reports
     )]
     [SwaggerResponse(200)]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
-    [Authorize(Policy = "ManagerOrUpper")]
     [HttpGet("Workers")]
     public async Task<IActionResult> Workers() =>
       await _reportsService.WorkersAsync();
@@ -47,7 +46,6 @@ namespace CRM.API.Controllers.Reports
     )]
     [SwaggerResponse(200)]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
-    [Authorize(Policy = "ManagerOrUpper")]
     [HttpGet("Orders")]
     public async Task<IActionResult> Orders() =>
       await _reportsService.OrdersAsync();
@@ -60,7 +58,6 @@ namespace CRM.API.Controllers.Reports
     [SwaggerResponse(200)]
     [SwaggerResponse(400, null, typeof(ExceptionResponse))]
     [SwaggerResponse(500, null, typeof(ExceptionResponse))]
-    [Authorize(Policy = "ManagerOrUpper")]
     [HttpGet("OrdersByDate")]
     public async Task<IActionResult> OrdersByDate([FromQuery] DateTime startDate, [FromQuery] DateTime endDate) =>
       await _reportsService.OrdersByDateAsync(startDate, endDate);
