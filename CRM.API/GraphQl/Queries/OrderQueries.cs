@@ -1,11 +1,10 @@
 ﻿using CRM.Core.Entities;
-using CRM.Core.Interfaces.OrderServices;
-
+using CRM.Core.Interfaces.Services.OrderServices;
 using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Queries
 {
-  public partial class Queries
+    public partial class Queries
   {
     [UsePaging(IncludeTotalCount = true)]
     [UseProjection]

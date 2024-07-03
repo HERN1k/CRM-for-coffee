@@ -3,11 +3,11 @@
 using CRM.Core.Contracts.ApplicationDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
-using CRM.Core.Interfaces.Excel;
+using CRM.Core.Interfaces.Infrastructure.Excel;
 
 namespace CRM.Infrastructure.Excel.Components
 {
-  public class ExcelFillingSheet(
+    public class ExcelFillingSheet(
       IExcelStyles styles,
       IExcelSheetDataFiller dataFiller
     ) : IExcelFillingSheet

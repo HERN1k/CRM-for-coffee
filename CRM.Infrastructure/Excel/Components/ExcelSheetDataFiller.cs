@@ -3,12 +3,12 @@
 using CRM.Core.Contracts.ApplicationDto;
 using CRM.Core.Entities;
 using CRM.Core.Enums;
-using CRM.Core.Interfaces.Excel;
-using CRM.Core.Interfaces.Repositories;
+using CRM.Core.Interfaces.Infrastructure.Excel;
+using CRM.Core.Interfaces.Repositories.Excel;
 
 namespace CRM.Infrastructure.Excel.Components
 {
-  public class ExcelSheetDataFiller(
+    public class ExcelSheetDataFiller(
       IExcelRepository repository,
       IExcelStyles styles
     ) : IExcelSheetDataFiller

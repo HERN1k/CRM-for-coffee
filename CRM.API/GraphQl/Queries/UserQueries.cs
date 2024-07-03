@@ -1,11 +1,10 @@
 ﻿using CRM.Core.Entities;
-using CRM.Core.Interfaces.UserServices;
-
+using CRM.Core.Interfaces.Services.UserServices;
 using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Queries
 {
-  public partial class Queries
+    public partial class Queries
   {
     [UseProjection]
     [UseSorting]

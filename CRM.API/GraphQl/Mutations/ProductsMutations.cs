@@ -1,12 +1,11 @@
 ﻿using CRM.Application.GraphQl.Dto;
 using CRM.Core.Entities;
-using CRM.Core.Interfaces.ProductsServices;
-
+using CRM.Core.Interfaces.Services.ProductsServices;
 using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Mutations
 {
-  public partial class Mutations
+    public partial class Mutations
   {
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]

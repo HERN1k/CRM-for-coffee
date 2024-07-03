@@ -1,10 +1,10 @@
 ﻿using CRM.Core.Enums;
-using CRM.Core.Exceptions;
+using CRM.Core.Exceptions.Custom;
 using CRM.Core.Responses;
 
 namespace CRM.API.Middlewares
 {
-  public class ExceptionHandlingMiddleware
+    public class ExceptionHandlingMiddleware
   {
     private readonly RequestDelegate _next;
 

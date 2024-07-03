@@ -1,6 +1,6 @@
-using CRM.API.Helper;
 using CRM.API.Middlewares;
-using CRM.Application.Hubs;
+using CRM.API.Tools;
+using CRM.Application.Hubs.Chackout;
 
 using Microsoft.AspNetCore.CookiePolicy;
 
@@ -73,8 +73,13 @@ namespace CRM.API
         #endregion
 
         #region Logger
-        app.Lifetime.ApplicationStarted.Register(() => logger
-          .WithProperty("EventId", 0).Info("Initialization complete"));
+        app.Lifetime.ApplicationStarted.Register(() =>
+        {
+          // Создать скрипт для создания сущностей в базе данных при первом запуске
+
+          logger
+            .WithProperty("EventId", 0).Info("Initialization complete");
+        });
         #endregion
 
         app.Run();
