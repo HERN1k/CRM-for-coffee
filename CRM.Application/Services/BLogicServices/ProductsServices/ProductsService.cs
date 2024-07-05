@@ -2,97 +2,105 @@
 using CRM.Application.Tools.RequestValidation;
 using CRM.Core.Entities;
 using CRM.Core.Interfaces.Repositories.Base;
-using CRM.Core.Interfaces.Services.ProductsServices;
+using CRM.Core.Interfaces.Repositories.BLogicRepositories.Products;
+using CRM.Core.Interfaces.Services.BLogicServices.ProductsServices;
+using CRM.Core.Models;
 
 namespace CRM.Application.Services.ProductsServices
 {
-    public partial class ProductsService(
-      IBaseRepository repository
+  public class ProductsService(
+      IProductsRepository repository,
+      IProductsComponents components,
+
+      IBaseRepository rep
     ) : IProductsService
   {
-    private readonly IBaseRepository _repository = repository;
+    private readonly IProductsRepository _repository = repository;
+    private readonly IProductsComponents _components = components;
 
-    public IQueryable<EntityProductCategory> GetProductCategories() =>
-      _repository.GetQueryable<EntityProductCategory>();
+    private readonly IBaseRepository _rep = rep;
 
-    public IQueryable<EntityProduct> GetProducts() =>
-      _repository.GetQueryable<EntityProduct>();
+    public IQueryable<ProductCategory> GetProductCategories() =>
+      _repository.GetQueryable<ProductCategory, EntityProductCategory>();
 
-    public IQueryable<EntityAddOn> GetAddOns() =>
-      _repository.GetQueryable<EntityAddOn>();
+    public IQueryable<Product> GetProducts() =>
+      _repository.GetQueryable<Product, EntityProduct>();
 
-    public async Task<EntityProductCategory> SetProductCategoryAsync(ProductCategoryRequest request)
+    public IQueryable<AddOn> GetAddOns() =>
+      _repository.GetQueryable<AddOn, EntityAddOn>();
+
+    public async Task<ProductCategory> SetProductCategoryAsync(ProductCategoryRequest request)
     {
       RequestValidator.Validate(request);
 
-      await EnsureUniqueName<EntityProductCategory>(request.Name);
+      await _repository.EnsureUniqueName<EntityProductCategory>(request.Name);
 
-      var newProductCategory = await SaveNewItem(request);
+      var newProductCategory = await _repository.SaveNewItem(request);
 
       return newProductCategory;
     }
 
-    public async Task<EntityProduct> SetProductAsync(ProductRequest request)
+    public async Task<Product> SetProductAsync(ProductRequest request)
     {
       RequestValidator.Validate(request);
 
-      await EnsureUniqueName<EntityProduct>(request.Name);
+      await _repository.EnsureUniqueName<EntityProduct>(request.Name);
 
-      var parent = await GetParentOrThrowAsync<EntityProductCategory>(request.CategoryName);
+      var parent = await _repository.GetParentOrThrowAsync<ProductCategory, EntityProductCategory>(request.CategoryName);
 
-      var newProduct = await SaveNewItem(parent, request);
+      var newProduct = await _repository.SaveNewItem(parent, request);
 
       return newProduct;
     }
 
-    public async Task<EntityAddOn> SetAddOnAsync(AddOnRequest request)
+    public async Task<AddOn> SetAddOnAsync(AddOnRequest request)
     {
       RequestValidator.Validate(request);
 
-      var parent = await GetParentOrThrowAsync<EntityProduct>(request.ProductName);
+      var parent = await _repository.GetParentOrThrowAsync<Product, EntityProduct>(request.ProductName);
 
-      var newAddOn = await SaveNewItem(parent, request);
+      var newAddOn = await _repository.SaveNewItem(parent, request);
 
       return newAddOn;
     }
 
-    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategoriesAsync(params string[] names)
+    public async Task<IEnumerable<ProductCategory>> RemoveProductCategoriesAsync(params string[] names)
     {
-      ValidateObjectCountForDeletion(names);
+      _components.ValidateObjectCountForDeletion(names);
 
       RequestValidator.ValidateProductsName(names);
 
-      var removeItems = await GetRemoveItems<EntityProductCategory>(names);
+      var removeItems = await _components.GetRemoveItems<ProductCategory, EntityProductCategory>(names);
 
-      await _repository.RemoveManyAsync<EntityProductCategory>(removeItems);
+      await _repository.RemoveManyAsync<ProductCategory, EntityProductCategory>(removeItems);
 
-      return await _repository.GetEnumerable<EntityProductCategory>();
+      return await _repository.GetEnumerable<ProductCategory, EntityProductCategory>();
     }
 
-    public async Task<IEnumerable<EntityProduct>> RemoveProductsAsync(params string[] names)
+    public async Task<IEnumerable<Product>> RemoveProductsAsync(params string[] names)
     {
-      ValidateObjectCountForDeletion(names);
+      _components.ValidateObjectCountForDeletion(names);
 
       RequestValidator.ValidateProductsName(names);
 
-      var removeItems = await GetRemoveItems<EntityProduct>(names);
+      var removeItems = await _components.GetRemoveItems<Product, EntityProduct>(names);
 
-      await _repository.RemoveManyAsync<EntityProduct>(removeItems);
+      await _repository.RemoveManyAsync<Product, EntityProduct>(removeItems);
 
-      return await _repository.GetEnumerable<EntityProduct>();
+      return await _repository.GetEnumerable<Product, EntityProduct>();
     }
 
-    public async Task<IEnumerable<EntityAddOn>> RemoveAddOnsAsync(params string[] names)
+    public async Task<IEnumerable<AddOn>> RemoveAddOnsAsync(params string[] names)
     {
-      ValidateObjectCountForDeletion(names);
+      _components.ValidateObjectCountForDeletion(names);
 
       RequestValidator.ValidateProductsName(names);
 
-      var removeItems = await GetRemoveItems<EntityAddOn>(names);
+      var removeItems = await _components.GetRemoveItems<AddOn, EntityAddOn>(names);
 
-      await _repository.RemoveManyAsync<EntityAddOn>(removeItems);
+      await _repository.RemoveManyAsync<AddOn, EntityAddOn>(removeItems);
 
-      return await _repository.GetEnumerable<EntityAddOn>();
+      return await _repository.GetEnumerable<AddOn, EntityAddOn>();
     }
   }
 }

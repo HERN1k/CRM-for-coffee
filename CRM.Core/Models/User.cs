@@ -1,8 +1,9 @@
-﻿using CRM.Core.Models.BaseModels;
+﻿using CRM.Core.Interfaces.Entity;
+using CRM.Core.Models.BaseModels;
 
 namespace CRM.Core.Models
 {
-  public class User : BaseModel
+  public class User : BaseModel, IEntityWithId
   {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

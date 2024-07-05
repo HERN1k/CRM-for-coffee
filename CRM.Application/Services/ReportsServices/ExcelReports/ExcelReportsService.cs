@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 
 using CRM.Core.Enums;
 using CRM.Core.Exceptions.Custom;
@@ -12,10 +10,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace CRM.Application.Services.ReportsServices.ExcelReports
 {
   public class ExcelReportsService(
-      IExcelService excelService
+      IExcelService excelService,
+      IExcelReportsComponents components
     ) : Controller, IExcelReportsService
   {
     private readonly IExcelService _excelService = excelService;
+    private readonly IExcelReportsComponents _components = components;
 
     public async Task<IActionResult> MenuAsync()
     {
@@ -27,11 +27,7 @@ namespace CRM.Application.Services.ReportsServices.ExcelReports
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = new StringBuilder()
-          .Append("Menu ")
-          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
-          .Append(".xlsx")
-          .ToString();
+        string fileName = _components.GenerateFileNameMenu();
 
         return File(stream.ToArray(), contentType, fileName);
       }
@@ -47,11 +43,7 @@ namespace CRM.Application.Services.ReportsServices.ExcelReports
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = new StringBuilder()
-          .Append("Workers ")
-          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
-          .Append(".xlsx")
-          .ToString();
+        string fileName = _components.GenerateFileNameWorkers();
 
         return File(stream.ToArray(), contentType, fileName);
       }
@@ -67,11 +59,7 @@ namespace CRM.Application.Services.ReportsServices.ExcelReports
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = new StringBuilder()
-          .Append("Orders ")
-          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
-          .Append(".xlsx")
-          .ToString();
+        string fileName = _components.GenerateFileNameOrders();
 
         return File(stream.ToArray(), contentType, fileName);
       }
@@ -90,15 +78,7 @@ namespace CRM.Application.Services.ReportsServices.ExcelReports
         stream.Position = 0;
 
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        string fileName = new StringBuilder()
-          .Append("Orders (")
-          .Append(startDate.ToString("dd/MM/yyyy"))
-          .Append(" - ")
-          .Append(endDate.ToString("dd/MM/yyyy"))
-          .Append(") ")
-          .Append(DateTime.Now.ToString("dd/MM/yyyy HH-mm"))
-          .Append(".xlsx")
-          .ToString();
+        string fileName = _components.GenerateFileNameOrdersByDate(startDate, endDate);
 
         return File(stream.ToArray(), contentType, fileName);
       }

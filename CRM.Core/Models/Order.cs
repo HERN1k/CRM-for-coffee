@@ -1,10 +1,11 @@
 ﻿using CRM.Core.Contracts.ApplicationDto;
 using CRM.Core.Enums;
+using CRM.Core.Interfaces.Entity;
 using CRM.Core.Models.BaseModels;
 
 namespace CRM.Core.Models
 {
-  public class Order : BaseModel
+  public class Order : BaseModel, IEntityWithId
   {
     public List<OrderProduct> Products { get; set; } = null!;
     public decimal Taxes { get; set; }
@@ -12,8 +13,12 @@ namespace CRM.Core.Models
     public PaymentMethods PaymentMethod { get; set; }
     public Guid WorkerId { get; set; }
     public DateTime OrderСreationDate { get; set; } = DateTime.UtcNow;
+    public int OrderNumber { get; set; } = 0;
 
-    public Order(CreateOrder order)
+    public Order()
+    { }
+
+    public Order(CreateOrderDto order)
     {
       Products = order.Products;
       PaymentMethod = order.PaymentMethod;

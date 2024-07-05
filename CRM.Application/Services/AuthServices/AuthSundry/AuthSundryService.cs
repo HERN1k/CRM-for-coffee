@@ -1,12 +1,10 @@
-﻿using CRM.Application.Tools.RequestDataMapper;
-using CRM.Application.Tools.RequestValidation;
+﻿using CRM.Application.Tools.RequestValidation;
 using CRM.Application.Tools.Security;
 using CRM.Core.Contracts.RestDto;
-using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Exceptions.Custom;
 using CRM.Core.Interfaces.Infrastructure.Email;
-using CRM.Core.Interfaces.Repositories.AuthSundry;
+using CRM.Core.Interfaces.Repositories.AuthRepositories.AuthSundry;
 using CRM.Core.Interfaces.Services.AuthServices.AuthSundry;
 using CRM.Core.Interfaces.Tools.Security.JwtToken;
 using CRM.Core.Models;
@@ -16,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.Application.Services.AuthServices.AuthSundry
 {
-    public class AuthSundryService(
+  public class AuthSundryService(
       IAuthSundryRepository repository,
       IAuthSundryComponents components,
       ITokenService tokenService,
@@ -38,9 +36,7 @@ namespace CRM.Application.Services.AuthServices.AuthSundry
 
         await _tokenService.ValidateToken(token);
 
-        EntityUser entityUser = await _repository.FindWorker(request.Email, ErrorTypes.Unauthorized, "Unauthorized");
-
-        User user = RequestMapper.MapToModel(entityUser);
+        User user = await _repository.FindWorker(request.Email, ErrorTypes.Unauthorized, "Unauthorized");
 
         await _repository.CheckImmutableToken(user.Id, token);
 
@@ -66,9 +62,7 @@ namespace CRM.Application.Services.AuthServices.AuthSundry
     {
       RequestValidator.Validate(request);
 
-      EntityUser entityUser = await _repository.FindWorker(request.Email, ErrorTypes.ServerError, "Server error");
-
-      User user = RequestMapper.MapToModel(entityUser);
+      User user = await _repository.FindWorker(request.Email, ErrorTypes.ServerError, "Server error");
 
       _components.CheckPasswordDifference(request);
 

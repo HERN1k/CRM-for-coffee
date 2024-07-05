@@ -11,6 +11,5 @@ namespace CRM.Core.Entities
     public int PaymentMethod { get; set; }
     public Guid WorkerId { get; set; }
     public DateTime OrderСreationDate { get; set; }
-    public int OrderNumber { get; set; } = 0;
   }
 }

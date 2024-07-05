@@ -5,10 +5,11 @@ using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Interfaces.Infrastructure.Excel;
 using CRM.Core.Interfaces.Repositories.Excel;
+using CRM.Core.Models;
 
 namespace CRM.Infrastructure.Excel.Components
 {
-    public class ExcelSheetDataFiller(
+  public class ExcelSheetDataFiller(
       IExcelRepository repository,
       IExcelStyles styles
     ) : IExcelSheetDataFiller
@@ -18,11 +19,11 @@ namespace CRM.Infrastructure.Excel.Components
 
     public int FillProductCategories(IXLWorksheet sheet)
     {
-      var entityProductCategories = _repository.FindEntitiesProductCategory();
+      List<ProductCategory> productCategories = _repository.FindEntitiesProductCategory();
 
       int rowIndex = 2;
 
-      foreach (var category in entityProductCategories)
+      foreach (var category in productCategories)
       {
         int numberProducts = category.Products != null ? category.Products.Count : 0;
         rowIndex++;
@@ -36,18 +37,18 @@ namespace CRM.Infrastructure.Excel.Components
 
     public async Task<int> FillProducts(IXLWorksheet sheet)
     {
-      var entityProducts = await _repository.FindEntities<EntityProduct>();
+      List<Product> products = await _repository.FindEntities<Product, EntityProduct>();
 
       int rowIndex = 2;
 
-      foreach (var product in entityProducts)
+      foreach (var product in products)
       {
-        var tempEntityCategory = await _repository.FindEntityById<EntityProductCategory>(product.ProductCategoryId);
+        var tempCategory = await _repository.FindEntityById<ProductCategory, EntityProductCategory>(product.ProductCategoryId);
         int tempNumberAddons = _repository.NumberEntitiesWithPredicate<EntityAddOn>(e => e.ProductId == product.Id);
 
         rowIndex++;
         sheet.Cell("B" + rowIndex).Value = rowIndex - 2;
-        sheet.Cell("C" + rowIndex).Value = tempEntityCategory.Name;
+        sheet.Cell("C" + rowIndex).Value = tempCategory.Name;
         sheet.Cell("D" + rowIndex).Value = product.Name;
         sheet.Cell("E" + rowIndex).Value = product.Price;
         sheet.Cell("F" + rowIndex).Value = tempNumberAddons;
@@ -58,17 +59,17 @@ namespace CRM.Infrastructure.Excel.Components
 
     public async Task<int> FillAddOns(IXLWorksheet sheet)
     {
-      var entityAddOns = await _repository.FindEntities<EntityAddOn>();
+      List<AddOn> addOns = await _repository.FindEntities<AddOn, EntityAddOn>();
 
       int rowIndex = 2;
 
-      foreach (var addOn in entityAddOns)
+      foreach (var addOn in addOns)
       {
-        var tempEntityProduct = await _repository.FindEntityById<EntityProduct>(addOn.ProductId);
+        Product tempProduct = await _repository.FindEntityById<Product, EntityProduct>(addOn.ProductId);
 
         rowIndex++;
         sheet.Cell("B" + rowIndex).Value = rowIndex - 2;
-        sheet.Cell("C" + rowIndex).Value = tempEntityProduct.Name;
+        sheet.Cell("C" + rowIndex).Value = tempProduct.Name;
         sheet.Cell("D" + rowIndex).Value = addOn.Name;
         sheet.Cell("E" + rowIndex).Value = addOn.Price;
       }
@@ -78,11 +79,11 @@ namespace CRM.Infrastructure.Excel.Components
 
     public async Task<int> FillWorkers(IXLWorksheet sheet)
     {
-      var entityWorkers = await _repository.FindEntities<EntityUser>();
+      List<User> workers = await _repository.FindEntities<User, EntityUser>();
 
       int rowIndex = 2;
 
-      foreach (var worker in entityWorkers)
+      foreach (var worker in workers)
       {
         rowIndex++;
         sheet.Cell("B" + rowIndex).Value = rowIndex - 2;
@@ -103,13 +104,13 @@ namespace CRM.Infrastructure.Excel.Components
       return rowIndex;
     }
 
-    public async Task<int> FillOrders(IXLWorksheet sheet, IQueryable<EntityOrder> entityOrders)
+    public async Task<int> FillOrders(IXLWorksheet sheet, List<Order> orders)
     {
       int rowIndex = 2;
 
-      foreach (var order in entityOrders)
+      foreach (var order in orders)
       {
-        var tempWorker = await _repository.FindEntityById<EntityUser>(order.WorkerId);
+        User tempWorker = await _repository.FindEntityById<User, EntityUser>(order.WorkerId);
 
         int numberAddOns = 0;
         foreach (var product in order.Products)
@@ -132,7 +133,7 @@ namespace CRM.Infrastructure.Excel.Components
       return rowIndex;
     }
 
-    public async Task<int> FillOrderProductsRow(IXLWorksheet sheet, EntityOrder order, int rowIndex)
+    public async Task<int> FillOrderProductsRow(IXLWorksheet sheet, Order order, int rowIndex)
     {
       int index = rowIndex;
       _styles.ItemTitleStyles(sheet, index, 2, "ID:", order.Id.ToString());
@@ -155,7 +156,7 @@ namespace CRM.Infrastructure.Excel.Components
       return index;
     }
 
-    public async Task<int> FillOrderAddOnsRow(IXLWorksheet sheet, EntityOrder order, int rowIndex)
+    public async Task<int> FillOrderAddOnsRow(IXLWorksheet sheet, Order order, int rowIndex)
     {
       int index = rowIndex;
       _styles.ItemTitleStyles(sheet, index, 2, "ID:", order.Id.ToString());
@@ -181,10 +182,10 @@ namespace CRM.Infrastructure.Excel.Components
     ///   Asynchronously fills the worksheet with order products data.
     /// </summary>
     /// <param name="sheet">The worksheet to fill with order products data.</param>
-    /// <param name="order">The order entity containing the products to use for filling the worksheet.</param>
+    /// <param name="order">The order containing the products to use for filling the worksheet.</param>
     /// <param name="index">The starting row index to fill the data.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the last row index of the filled data.</returns>
-    private async Task<int> FillOrderProducts(IXLWorksheet sheet, EntityOrder order, int index)
+    private async Task<int> FillOrderProducts(IXLWorksheet sheet, Order order, int index)
     {
       int rowIndex = index;
 
@@ -193,17 +194,19 @@ namespace CRM.Infrastructure.Excel.Components
       rowIndex++;
       foreach (var product in order.Products)
       {
-        var tempEntityProduct = await _repository.FindEntityById<EntityProduct>(product.ProductId);
-        var tempEntityProductCategory = await _repository.FindEntityById<EntityProductCategory>(tempEntityProduct.ProductCategoryId);
+        var tempProduct = await _repository
+          .FindEntityById<Product, EntityProduct>(product.ProductId);
+        var tempProductCategory = await _repository
+          .FindEntityById<ProductCategory, EntityProductCategory>(tempProduct.ProductCategoryId);
 
         rowIndex++;
         indexId++;
         sheet.Cell("B" + rowIndex).Value = indexId;
-        sheet.Cell("C" + rowIndex).Value = tempEntityProductCategory.Name;
-        sheet.Cell("D" + rowIndex).Value = tempEntityProduct.Name;
+        sheet.Cell("C" + rowIndex).Value = tempProductCategory.Name;
+        sheet.Cell("D" + rowIndex).Value = tempProduct.Name;
         sheet.Cell("E" + rowIndex).Value = product.Amount;
-        sheet.Cell("F" + rowIndex).Value = tempEntityProduct.Price;
-        sheet.Cell("G" + rowIndex).Value = product.Amount * tempEntityProduct.Price;
+        sheet.Cell("F" + rowIndex).Value = tempProduct.Price;
+        sheet.Cell("G" + rowIndex).Value = product.Amount * tempProduct.Price;
         sheet.Cell("H" + rowIndex).Value = product.AddOns.Count;
       }
 
@@ -219,7 +222,7 @@ namespace CRM.Infrastructure.Excel.Components
     /// <param name="order">The order entity containing the addons to use for filling the worksheet.</param>
     /// <param name="index">The starting row index to fill the data.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the last row index of the filled data.</returns>
-    private async Task<int> FillOrderAddOns(IXLWorksheet sheet, EntityOrder order, int index)
+    private async Task<int> FillOrderAddOns(IXLWorksheet sheet, Order order, int index)
     {
       int rowIndex = index;
 
@@ -228,19 +231,22 @@ namespace CRM.Infrastructure.Excel.Components
       rowIndex++;
       foreach (var product in order.Products)
       {
-        var tempEntityProduct = await _repository.FindEntityById<EntityProduct>(product.ProductId);
+        var tempProduct = await _repository
+          .FindEntityById<Product, EntityProduct>(product.ProductId);
+
         foreach (var addOn in product.AddOns)
         {
-          var tempEntityAddOn = await _repository.FindEntityById<EntityAddOn>(addOn.AddOnId);
+          var tempAddOn = await _repository
+            .FindEntityById<AddOn, EntityAddOn>(addOn.AddOnId);
 
           rowIndex++;
           indexId++;
           sheet.Cell("B" + rowIndex).Value = indexId;
-          sheet.Cell("C" + rowIndex).Value = tempEntityProduct.Name;
-          sheet.Cell("D" + rowIndex).Value = tempEntityAddOn.Name;
+          sheet.Cell("C" + rowIndex).Value = tempProduct.Name;
+          sheet.Cell("D" + rowIndex).Value = tempAddOn.Name;
           sheet.Cell("E" + rowIndex).Value = addOn.Amount;
-          sheet.Cell("F" + rowIndex).Value = tempEntityAddOn.Price;
-          sheet.Cell("G" + rowIndex).Value = addOn.Amount * tempEntityAddOn.Price;
+          sheet.Cell("F" + rowIndex).Value = tempAddOn.Price;
+          sheet.Cell("G" + rowIndex).Value = addOn.Amount * tempAddOn.Price;
         }
       }
 

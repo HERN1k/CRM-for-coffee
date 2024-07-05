@@ -1,71 +1,66 @@
-﻿using CRM.Application.Tools.RequestDataMapper;
-using CRM.Application.Tools.RequestValidation;
+﻿using CRM.Application.Tools.RequestValidation;
 using CRM.Core.Contracts.ApplicationDto;
 using CRM.Core.Contracts.GraphQlDto;
-using CRM.Core.Entities;
 using CRM.Core.Enums;
-using CRM.Core.Interfaces.Repositories.Base;
-using CRM.Core.Interfaces.Services.OrderServices;
-using CRM.Core.Interfaces.Settings;
+using CRM.Core.Interfaces.Repositories.BLogicRepositories.OrderRepository;
+using CRM.Core.Interfaces.Services.BLogicServices.OrderServices;
 using CRM.Core.Models;
 using CRM.Core.Responses;
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 
 namespace CRM.Application.Services.OrderServices
 {
-    public partial class OrderService(
-      IHttpContextAccessor httpContextAccessor,
-      IOptions<BusinessInformationSettings> businessInfSettings,
-      IBaseRepository repository
+  public class OrderService(
+      IOrderComponents components,
+      IOrderRepository repository
     ) : IOrderService
   {
-    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly BusinessInformationSettings _businessInfSettings = businessInfSettings.Value;
-    private readonly IBaseRepository _repository = repository;
+    private readonly IOrderComponents _components = components;
+    private readonly IOrderRepository _repository = repository;
 
     public async Task<OperationResult> AddOrderAsync(CreateOrderRequest input)
     {
       RequestValidator.Validate(input);
 
-      CreateOrder newOrder = CreateOrderDataMapper(input);
+      CreateOrderDto newOrder = _components.CreateOrderDataMapper(input);
 
-      EntityUser workerChackout = await GetUserFromDB(input.WorkerEmail, ErrorTypes.BadRequest, "Worker not found");
+      User workerChackout = await _repository
+        .FindWorkerByEmail(input.WorkerEmail, ErrorTypes.BadRequest, "Worker not found");
 
       newOrder.WorkerId = workerChackout.Id;
 
-      var products = await GetOrderProductList(input, newOrder);
+      var products = await _components.GetOrderProductList(input, newOrder);
 
       newOrder.Products = products;
 
       Order order = new Order(newOrder);
 
-      EntityOrder entityOrder = RequestMapper.MapToModel(order);
-
-      await _repository.AddAsync<EntityOrder>(entityOrder);
+      await _repository.AddOrderAsync(order);
 
       return new OperationResult(true);
     }
 
-    public async Task<IEnumerable<EntityOrder>> GetEmployeeOrdersForDayAsync()
+    public async Task<IEnumerable<Order>> GetEmployeeOrdersForDayAsync()
     {
-      HttpContext httpContext = GetHttpContext();
+      HttpContext httpContext = _components.GetHttpContext();
 
-      string email = GetEmailFromUserClaims(httpContext);
+      string email = _components.GetEmailFromUserClaims(httpContext);
 
-      EntityUser user = await GetUserFromDB(email, ErrorTypes.ServerError, "Server error");
+      User user = await _repository
+        .FindWorkerByEmail(email, ErrorTypes.ServerError, "Server error");
 
-      IQueryable<EntityOrder> orders = GetOrdersByDescendingWorkerPerDay(user);
+      List<Order> orders = _repository
+        .GetOrdersByDescendingWorkerPerDay(user);
 
-      int numberOrders = GetNumberOrders(user);
+      int numberOrders = _repository.GetNumberOrders(user);
 
-      var result = await SetOrderNumber(orders, numberOrders);
+      _components.SetOrderNumber(orders, numberOrders);
 
-      return result;
+      return orders.AsEnumerable();
     }
 
-    public IQueryable<EntityOrder> GetOrders() =>
-      _repository.GetQueryable<EntityOrder>();
+    public IQueryable<Order> GetOrders() =>
+      _repository.GetQueryableOrders();
   }
 }

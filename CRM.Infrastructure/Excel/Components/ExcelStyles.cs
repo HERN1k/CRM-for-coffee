@@ -6,7 +6,7 @@ using CRM.Core.Interfaces.Infrastructure.Excel;
 
 namespace CRM.Infrastructure.Excel.Components
 {
-    public class ExcelStyles : IExcelStyles
+  public class ExcelStyles : IExcelStyles
   {
     public void TitleStyles(IXLWorksheet sheet, int row, List<TitleCellStylesDto> columns)
     {

@@ -1,8 +1,9 @@
-﻿using CRM.Core.Models.BaseModels;
+﻿using CRM.Core.Interfaces.Entity;
+using CRM.Core.Models.BaseModels;
 
 namespace CRM.Core.Models
 {
-  public class Product : BaseModel
+  public class Product : BaseModel, IEntityWithId, IEntityWithName
   {
     public string Name { get; set; } = string.Empty;
     public string Image { get; set; } = string.Empty;

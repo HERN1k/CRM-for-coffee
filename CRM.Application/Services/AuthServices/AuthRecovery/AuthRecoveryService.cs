@@ -1,11 +1,9 @@
-﻿using CRM.Application.Tools.RequestDataMapper;
-using CRM.Application.Tools.RequestValidation;
+﻿using CRM.Application.Tools.RequestValidation;
 using CRM.Application.Tools.Security;
 using CRM.Core.Contracts.RestDto;
-using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Interfaces.Infrastructure.Email;
-using CRM.Core.Interfaces.Repositories.AuthRecovery;
+using CRM.Core.Interfaces.Repositories.AuthRepositories.AuthRecovery;
 using CRM.Core.Interfaces.Services.AuthServices.AuthRecovery;
 using CRM.Core.Models;
 
@@ -14,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.Application.Services.AuthServices.AuthRecovery
 {
-    public class AuthRecoveryService(
+  public class AuthRecoveryService(
       IAuthRecoveryRepository repository,
       IAuthRecoveryComponents components,
       IEmailService emailService
@@ -28,9 +26,7 @@ namespace CRM.Application.Services.AuthServices.AuthRecovery
     {
       RequestValidator.Validate(request);
 
-      EntityUser entityUser = await _repository.FindWorker(request.Email, ErrorTypes.BadRequest, "The user is not registered");
-
-      User user = RequestMapper.MapToModel(entityUser);
+      User user = await _repository.FindWorker(request.Email, ErrorTypes.BadRequest, "The user is not registered");
 
       _components.СomparisonRecoveryPassData(user, request);
 

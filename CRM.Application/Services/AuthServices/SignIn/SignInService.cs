@@ -1,8 +1,7 @@
-﻿using CRM.Application.Tools.RequestDataMapper;
-using CRM.Application.Tools.RequestValidation;
+﻿using CRM.Application.Tools.RequestValidation;
 using CRM.Core.Contracts.RestDto;
 using CRM.Core.Enums;
-using CRM.Core.Interfaces.Repositories.SignIn;
+using CRM.Core.Interfaces.Repositories.AuthRepositories.SignIn;
 using CRM.Core.Interfaces.Services.AuthServices.SignIn;
 using CRM.Core.Models;
 
@@ -11,33 +10,31 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.Application.Services.AuthServices.SignIn
 {
-    public class SignInService(
-        ISignInRepository repository,
-        ISignInComponents components
-      ) : ISignInService
+  public class SignInService(
+      ISignInRepository repository,
+      ISignInComponents components
+    ) : ISignInService
+  {
+    private readonly ISignInRepository _repository = repository;
+    private readonly ISignInComponents _components = components;
+
+    public async Task<IActionResult> SignInAsync(HttpContext httpContext, SignInRequest request)
     {
-        private readonly ISignInRepository _repository = repository;
-        private readonly ISignInComponents _components = components;
+      RequestValidator.Validate(request);
 
-        public async Task<IActionResult> SignInAsync(HttpContext httpContext, SignInRequest request)
-        {
-            RequestValidator.Validate(request);
+      User user = await _repository.FindWorker(request.Email);
 
-            var entityUser = await _repository.FindWorker(request.Email);
+      _components.ChackingCorrectPassword(user, request);
 
-            User user = RequestMapper.MapToModel(entityUser);
+      var tokens = _components.CreateJwtTokenDictionary(user);
 
-            _components.ChackingCorrectPassword(user, request);
+      await _repository.SaveToken(user.Id, tokens[TokenTypes.Refresh]);
 
-            var tokens = _components.CreateJwtTokenDictionary(user);
+      _components.SetCookie(httpContext, tokens[TokenTypes.Access], tokens[TokenTypes.Refresh]);
 
-            await _repository.SaveToken(user.Id, tokens[TokenTypes.Refresh]);
+      var response = _components.CreateResponse(user, tokens[TokenTypes.Refresh]);
 
-            _components.SetCookie(httpContext, tokens[TokenTypes.Access], tokens[TokenTypes.Refresh]);
-
-            var response = _components.CreateResponse(user, tokens[TokenTypes.Refresh]);
-
-            return new OkObjectResult(response);
-        }
+      return new OkObjectResult(response);
     }
+  }
 }

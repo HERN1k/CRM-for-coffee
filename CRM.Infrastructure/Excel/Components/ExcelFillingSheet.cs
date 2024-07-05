@@ -1,13 +1,13 @@
 ﻿using ClosedXML.Excel;
 
 using CRM.Core.Contracts.ApplicationDto;
-using CRM.Core.Entities;
 using CRM.Core.Enums;
 using CRM.Core.Interfaces.Infrastructure.Excel;
+using CRM.Core.Models;
 
 namespace CRM.Infrastructure.Excel.Components
 {
-    public class ExcelFillingSheet(
+  public class ExcelFillingSheet(
       IExcelStyles styles,
       IExcelSheetDataFiller dataFiller
     ) : IExcelFillingSheet
@@ -97,9 +97,9 @@ namespace CRM.Infrastructure.Excel.Components
       sheet.Columns().AdjustToContents();
     }
 
-    public async Task Orders(IXLWorksheet sheet, IQueryable<EntityOrder> entityOrders)
+    public async Task Orders(IXLWorksheet sheet, List<Order> orders)
     {
-      int rowIndex = await _dataFiller.FillOrders(sheet, entityOrders);
+      int rowIndex = await _dataFiller.FillOrders(sheet, orders);
 
       _styles.MainTableStyle(sheet, "B", 3, "J", rowIndex);
 
@@ -121,10 +121,10 @@ namespace CRM.Infrastructure.Excel.Components
       sheet.Columns().AdjustToContents();
     }
 
-    public async Task OrderProducts(IXLWorksheet sheet, IQueryable<EntityOrder> entityOrders)
+    public async Task OrderProducts(IXLWorksheet sheet, List<Order> orders)
     {
       int rowIndex = 1;
-      foreach (var order in entityOrders)
+      foreach (var order in orders)
       {
         rowIndex++;
         rowIndex = await _dataFiller.FillOrderProductsRow(sheet, order, rowIndex);
@@ -134,11 +134,11 @@ namespace CRM.Infrastructure.Excel.Components
       sheet.Columns().AdjustToContents();
     }
 
-    public async Task OrderAddOns(IXLWorksheet sheet, IQueryable<EntityOrder> entityOrders)
+    public async Task OrderAddOns(IXLWorksheet sheet, List<Order> orders)
     {
       int rowIndex = 1;
 
-      foreach (var order in entityOrders)
+      foreach (var order in orders)
       {
         rowIndex++;
         rowIndex = await _dataFiller.FillOrderAddOnsRow(sheet, order, rowIndex);

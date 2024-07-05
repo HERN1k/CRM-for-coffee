@@ -1,16 +1,17 @@
-﻿using CRM.Core.Entities;
-using CRM.Core.Interfaces.Services.ProductsServices;
+﻿using CRM.Core.Interfaces.Services.BLogicServices.ProductsServices;
+using CRM.Core.Models;
+
 using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Queries
 {
-    public partial class Queries
+  public partial class Queries
   {
     [UseProjection]
     [UseSorting()]
     [UseFiltering()]
     [Authorize(Policy = "AdminOrLower")]
-    public IQueryable<EntityProductCategory> GetProductCategories(
+    public IQueryable<ProductCategory> GetProductCategories(
         [Service] IProductsService productsService
       ) => productsService.GetProductCategories();
 
@@ -18,7 +19,7 @@ namespace CRM.API.GraphQl.Queries
     [UseSorting()]
     [UseFiltering()]
     [Authorize(Policy = "AdminOrLower")]
-    public IQueryable<EntityProduct> GetProducts(
+    public IQueryable<Product> GetProducts(
         [Service] IProductsService productsService
       ) => productsService.GetProducts();
 
@@ -26,7 +27,7 @@ namespace CRM.API.GraphQl.Queries
     [UseSorting()]
     [UseFiltering()]
     [Authorize(Policy = "AdminOrLower")]
-    public IQueryable<EntityAddOn> GetAddOns(
+    public IQueryable<AddOn> GetAddOns(
         [Service] IProductsService productsService
       ) => productsService.GetAddOns();
   }

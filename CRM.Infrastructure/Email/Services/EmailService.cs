@@ -1,16 +1,15 @@
 ﻿using System.Text;
 
 using CRM.Core.Contracts.ApplicationDto;
-using CRM.Core.Entities;
 using CRM.Core.Interfaces.Infrastructure.Email;
 using CRM.Core.Interfaces.Settings;
 using CRM.Core.Models;
 
 namespace CRM.Infrastructure.Email.Services
 {
-    public class EmailService(
-        IEmailSender sender
-      ) : IEmailService
+  public class EmailService(
+      IEmailSender sender
+    ) : IEmailService
   {
     private readonly IEmailSender _sender = sender;
 
@@ -38,7 +37,7 @@ namespace CRM.Infrastructure.Email.Services
       await _sender.SendEmailAsync(user.FirstName, user.Email, html);
     }
 
-    public async Task NotifyAdminsOnManagerRegistration(EntityUser user, List<EntityUser> admins)
+    public async Task NotifyAdminsOnManagerRegistration(User user, List<User> admins)
     {
       if (user.Post == "Worker")
         return;

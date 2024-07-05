@@ -1,50 +1,51 @@
 ﻿using CRM.Application.GraphQl.Dto;
-using CRM.Core.Entities;
-using CRM.Core.Interfaces.Services.ProductsServices;
+using CRM.Core.Interfaces.Services.BLogicServices.ProductsServices;
+using CRM.Core.Models;
+
 using HotChocolate.Authorization;
 
 namespace CRM.API.GraphQl.Mutations
 {
-    public partial class Mutations
+  public partial class Mutations
   {
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<EntityProductCategory> AddProductCategory(
+    public async Task<ProductCategory> AddProductCategory(
         [Service] IProductsService productsService,
         ProductCategoryRequest request
       ) => await productsService.SetProductCategoryAsync(request);
 
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<EntityProduct> AddProduct(
+    public async Task<Product> AddProduct(
         [Service] IProductsService productsService,
         ProductRequest request
       ) => await productsService.SetProductAsync(request);
 
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<EntityAddOn> AddAddOn(
+    public async Task<AddOn> AddAddOn(
         [Service] IProductsService productsService,
         AddOnRequest request
       ) => await productsService.SetAddOnAsync(request);
 
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<IEnumerable<EntityProductCategory>> RemoveProductCategories(
+    public async Task<IEnumerable<ProductCategory>> RemoveProductCategories(
         [Service] IProductsService productsService,
         params string[] names
       ) => await productsService.RemoveProductCategoriesAsync(names);
 
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<IEnumerable<EntityProduct>> RemoveProducts(
+    public async Task<IEnumerable<Product>> RemoveProducts(
         [Service] IProductsService productsService,
         params string[] names
       ) => await productsService.RemoveProductsAsync(names);
 
     [UseProjection]
     [Authorize(Policy = "ManagerOrUpper")]
-    public async Task<IEnumerable<EntityAddOn>> RemoveAddOns(
+    public async Task<IEnumerable<AddOn>> RemoveAddOns(
         [Service] IProductsService productsService,
         params string[] names
       ) => await productsService.RemoveAddOnsAsync(names);

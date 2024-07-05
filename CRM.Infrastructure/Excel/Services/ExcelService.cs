@@ -1,10 +1,11 @@
 ﻿using ClosedXML.Excel;
+
 using CRM.Core.Interfaces.Infrastructure.Excel;
 using CRM.Core.Interfaces.Repositories.Excel;
 
 namespace CRM.Infrastructure.Excel.Services
 {
-    public class ExcelService(
+  public class ExcelService(
       IExcelFillingSheet fillingSheet,
       IExcelRepository repository
     ) : IExcelService
